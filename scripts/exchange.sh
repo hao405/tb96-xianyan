@@ -19,7 +19,7 @@ export MIOPEN_DEBUG_DISABLE_FIND_DB=1
 export HIP_VISIBLE_DEVICES=$GPU
 alpha=0.35
 data_name=exchange_rate
-for pred_len in 192 336 192 336
+for pred_len in 96 192 336 720
 do
   HIP_VISIBLE_DEVICES=$GPU \
   python -u tune2.py \

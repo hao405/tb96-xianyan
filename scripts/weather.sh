@@ -20,7 +20,7 @@ export MIOPEN_DEBUG_DISABLE_FIND_DB=1
 export HIP_VISIBLE_DEVICES=$GPU
 alpha=0.1
 data_name=weather
-for pred_len in 96 96
+for pred_len in 96 192 336 720
 do
   HIP_VISIBLE_DEVICES=$GPU \
   python -u tune3.py \
