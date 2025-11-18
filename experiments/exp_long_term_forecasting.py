@@ -349,4 +349,5 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         f.write('\n')
         f.close()
 
-        return
+        object = mae + mse
+        return object,mae,mse
