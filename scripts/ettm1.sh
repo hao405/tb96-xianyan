@@ -14,7 +14,7 @@ fi
 model_name=TimeBridge
 seq_len=96
 GPU=4
-root=./dataset
+root=./data
 export MIOPEN_DISABLE_CACHE=1
 export MIOPEN_DEBUG_DISABLE_FIND_DB=1
 export HIP_VISIBLE_DEVICES=$GPU
