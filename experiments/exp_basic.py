@@ -1,6 +1,5 @@
 import os
 import torch
-import torch.distributed as dist
 from model import TimeBridge
 
 
@@ -19,16 +18,10 @@ class Exp_Basic(object):
 
     def _acquire_device(self):
         if self.args.use_gpu:
-            if self.args.use_multi_gpu and hasattr(self.args, 'local_rank'):
-                # DDP mode: use local_rank
-                device = torch.device('cuda:{}'.format(self.args.local_rank))
-                print(f'Use GPU (DDP): cuda:{self.args.local_rank}, Rank: {self.args.rank}/{self.args.world_size}')
-            else:
-                # Single GPU or DataParallel mode
-                os.environ["CUDA_VISIBLE_DEVICES"] = str(
-                    self.args.gpu) if not self.args.use_multi_gpu else self.args.devices
-                device = torch.device('cuda:{}'.format(self.args.gpu))
-                print('Use GPU: cuda:{}'.format(self.args.gpu))
+            os.environ["CUDA_VISIBLE_DEVICES"] = str(
+                self.args.gpu) if not self.args.use_multi_gpu else self.args.devices
+            device = torch.device('cuda:{}'.format(self.args.gpu))
+            print('Use GPU: cuda:{}'.format(self.args.gpu))
         else:
             device = torch.device('cpu')
             print('Use CPU')

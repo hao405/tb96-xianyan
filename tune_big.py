@@ -1,7 +1,6 @@
 import time
 import optuna
 import torch
-import torch.distributed as dist
 import random
 import numpy as np
 import argparse
@@ -11,38 +10,10 @@ import os
 from experiments.exp_long_term_forecasting import Exp_Long_Term_Forecast
 
 
-def setup_ddp():
-    """初始化 DDP 环境（适用于 ROCm/AMD GPU）"""
-    if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
-        rank = int(os.environ['RANK'])
-        world_size = int(os.environ['WORLD_SIZE'])
-        local_rank = int(os.environ.get('LOCAL_RANK', 0))
-
-        # 对于 ROCm，使用 nccl 或 gloo backend
-        # ROCm 支持 nccl backend（通过 rccl）
-        backend = 'nccl' if torch.cuda.is_available() else 'gloo'
-
-        dist.init_process_group(backend=backend, rank=rank, world_size=world_size)
-        torch.cuda.set_device(local_rank)
-
-        return rank, world_size, local_rank
-    return 0, 1, 0
-
-
-def cleanup_ddp():
-    """清理 DDP 环境"""
-    if dist.is_initialized():
-        dist.destroy_process_group()
-
-
 def objective(trial):
     """
     Optuna 的目标函数。每一次调用都会使用一组新的超参数来训练模型。
     """
-    # ---- DDP 初始化 ----
-    rank, world_size, local_rank = setup_ddp()
-    is_main_process = (rank == 0)
-
     # ---- 固定随机种子 ----
     fix_seed = 2023
     random.seed(fix_seed)
@@ -115,7 +86,7 @@ def objective(trial):
     # GPU
     parser.add_argument('--use_gpu', type=bool, default=True, help='use gpu')
     parser.add_argument('--gpu', type=int, default=0, help='gpu')
-    parser.add_argument('--use_multi_gpu', action='store_true', help='use multiple gpus', default=True)
+    parser.add_argument('--use_multi_gpu', action='store_true', help='use multiple gpus', default=False)
     parser.add_argument('--devices', type=str, default='0,1,2', help='device ids of multile gpus')
 
     parser.add_argument('--inverse', action='store_true', help='inverse output data', default=False)
@@ -174,27 +145,20 @@ def objective(trial):
 
 
     # 打印本次试验的参数
-    if is_main_process:
-        print(f"\n--- [Trial {trial.number}] 参数 ---")
-        param_str = ", ".join([f"{k}={v}" for k, v in trial.params.items()])
-        print(f"{args.data_path}_seqlen_{args.seq_len}_predlen_{args.pred_len}\n")
-        print(param_str)
+    print(f"\n--- [Trial {trial.number}] 参数 ---")
+    param_str = ", ".join([f"{k}={v}" for k, v in trial.params.items()])
+    print(f"{args.data_path}_seqlen_{args.seq_len}_predlen_{args.pred_len}\n")
+    print(param_str)
 
     # ---- 3. 运行实验 ----
     # 设置 GPU
     args.use_gpu = True if torch.cuda.is_available() and args.use_gpu else False
 
     if args.use_gpu and args.use_multi_gpu:
-        # DDP mode: set local_rank and other DDP parameters
-        args.local_rank = local_rank
-        args.rank = rank
-        args.world_size = world_size
         args.devices = args.devices.replace(' ', '')
         device_ids = args.devices.split(',')
         args.device_ids = [int(id_) for id_ in device_ids]
-        args.gpu = local_rank  # Use local_rank for DDP
-    else:
-        args.gpu = 0
+        args.gpu = args.device_ids[0]
     # 实例化实验
     exp = Exp_Long_Term_Forecast(args)
 
@@ -205,31 +169,17 @@ def objective(trial):
         trial.number
     )
 
-    # 运行训练并获取最佳验证损失
-    try:
-        exp.train(setting)
-        # 运行测试并获取测试集的 mae 和 mse
-        result = exp.test(setting)
 
-        # Check if test returned None
-        if result is None:
-            if is_main_process:
-                print(f"Trial {trial.number} failed: test() returned None")
-            raise optuna.exceptions.TrialPruned()
+    # 运行训练并获取最佳验证损失 (这依赖于第一步的修改)
+    exp.train(setting)
+    # 运行测试并获取测试集的 mae 和 mse
+    object ,test_mae, test_mse = exp.test(setting)
 
-        object, test_mae, test_mse = result
+    # ---- 将附加指标存入 user_attrs ----
+    trial.set_user_attr("test_mae", test_mae)
+    trial.set_user_attr("test_mse", test_mse)
 
-        # ---- 将附加指标存入 user_attrs (仅主进程) ----
-        if is_main_process:
-            trial.set_user_attr("test_mae", test_mae)
-            trial.set_user_attr("test_mse", test_mse)
-    except Exception as e:
-        if is_main_process:
-            print(f"Trial {trial.number} failed with error: {e}")
-        raise optuna.exceptions.TrialPruned()
-    finally:
-        # 清理 DDP
-        cleanup_ddp()
+
 
     # 清理 GPU 缓存
     torch.cuda.empty_cache()
