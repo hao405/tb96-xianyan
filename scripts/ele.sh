@@ -22,7 +22,7 @@ do
   MIOPEN_DISABLE_CACHE=1 \
   MIOPEN_SYSTEM_DB_PATH="" \
   HIP_VISIBLE_DEVICES="0,1,2,3,4,5,6,7" \
-  python -u run.py \
+  python -u tune_big.py \
     --is_training 1 \
     --root_path $root/electricity/ \
     --data_path electricity.csv \
