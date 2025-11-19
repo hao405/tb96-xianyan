@@ -12,18 +12,16 @@ if [ ! -d "./logs/test/new" ]; then
 fi
 model_name=TimeBridge
 seq_len=96
-GPU=2
 root=./data
-export MIOPEN_DISABLE_CACHE=1
-export MIOPEN_DEBUG_DISABLE_FIND_DB=1
-export HIP_VISIBLE_DEVICES=$GPU
 
 alpha=0.2
 data_name=electricity
 for pred_len in 720 96 192 336
 do
-  HIP_VISIBLE_DEVICES=$GPU \
-  python -u tune_big.py \
+  MIOPEN_DISABLE_CACHE=1 \
+  MIOPEN_SYSTEM_DB_PATH="" \
+  HIP_VISIBLE_DEVICES="2" \
+  python -u run.py \
     --is_training 1 \
     --root_path $root/electricity/ \
     --data_path electricity.csv \
@@ -48,7 +46,6 @@ do
     --alpha $alpha \
     --batch_size 16 \
     --devices 0,1,2,3,4,5,6,7 \
-    --gpu $GPU \
     --learning_rate 0.0005 \
     --itr 1 | tee logs/test/new/$data_name'_'$alpha'_'$model_name'_'$pred_len.logs
 done
