@@ -113,13 +113,16 @@ def objective(trial):
     # Optuna 将从这里动态地建议超参数，覆盖默认值
     args = parser.parse_args()  # 使用空列表来避免解析命令行
 
-    args.learning_rate = trial.suggest_float('learning_rate', 3e-4, 7e-4, log=True)
+    args.learning_rate = trial.suggest_float('learning_rate', 2e-4, 7e-4, log=True)
     if args.data_path == 'electricity.csv':
         args.batch_size = trial.suggest_categorical('batch_size', [64])
+        args.alpha = trial.suggest_float('alpha', 0.15, 0.25, log=True)
     elif args.data_path == 'traffic.csv':
         args.batch_size = trial.suggest_categorical('batch_size', [32])
+        args.alpha = trial.suggest_float('alpha', 0.3, 0.4, log=True)
     elif args.data_path == 'solar_AL.txt':
         args.batch_size = trial.suggest_categorical('batch_size', [32])
+        args.alpha = trial.suggest_float('alpha', 0.0001, 0.3, log=True)
     else:
         args.batch_size = trial.suggest_categorical('batch_size', [16,32,48,64])
 
@@ -133,13 +136,13 @@ def objective(trial):
     # args.pd_layers = 1
     # args.ia_layers = trial.suggest_categorical('ia_layers', [0,1])
     # args.attn_dropout = trial.suggest_float('attn_dropout', 0, 0.25, step=0.05)
-    possible_n_heads = [h for h in [8,16,32] if args.d_model % h == 0]
+    possible_n_heads = [h for h in [32,64] if args.d_model % h == 0]
     if not possible_n_heads:  # 如果没有可用的 n_heads，则跳过此次试验
         raise optuna.exceptions.TrialPruned()
     args.n_heads = trial.suggest_categorical('n_heads', possible_n_heads)
     # args.num_p = trial.suggest_categorical('num_p', [4,6,8,12])
 
-    args.alpha = trial.suggest_float('alpha', 0.0002, 0.10, log=True)
+
 
     # 打印本次试验的参数
     print(f"\n--- [Trial {trial.number}] 参数 ---")
@@ -200,7 +203,7 @@ if __name__ == '__main__':
 
     # 'n_trials' 是你想要尝试的超参数组合的总次数
     # 从一个较小的数字开始，比如 20，然后再增加
-    study.optimize(objective, n_trials=3)
+    study.optimize(objective, n_trials=4)
 
     # ---- 6. 输出优化结果 ----
     print("\n\n--- 优化完成 ---")

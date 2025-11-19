@@ -24,7 +24,7 @@ data_name=ETTm2
 for pred_len in 96 192 336 720
 do
   HIP_VISIBLE_DEVICES=$GPU \
-  python -u tune2.py \
+  python -u tune4.py \
     --is_training 1 \
     --root_path $root/ETT-small/ \
     --data_path $data_name.csv \

@@ -114,8 +114,8 @@ def objective(trial):
     # Optuna 将从这里动态地建议超参数，覆盖默认值
     args = parser.parse_args()  # 使用空列表来避免解析命令行
 
-    args.learning_rate = trial.suggest_float('learning_rate', 1e-4, 5e-4, log=True)
-    args.batch_size = trial.suggest_categorical('batch_size', [16])
+    args.learning_rate = trial.suggest_float('learning_rate', 1e-4, 4e-4, log=True)
+    args.batch_size = trial.suggest_categorical('batch_size', [16,32,48])
 
     args.zd_kl_weight = trial.suggest_float('zd_kl_weight', 1e-17, 1e-12, log=True)
     args.zc_kl_weight = trial.suggest_float('zc_kl_weight', 1e-17, 1e-12, log=True)
@@ -127,7 +127,7 @@ def objective(trial):
     args.pd_layers = 1
     args.ia_layers = trial.suggest_categorical('ia_layers', [1])
 
-    possible_n_heads = [h for h in [4] if args.d_model % h == 0]
+    possible_n_heads = [h for h in [4,32,64] if args.d_model % h == 0]
     if not possible_n_heads:  # 如果没有可用的 n_heads，则跳过此次试验
         raise optuna.exceptions.TrialPruned()
     args.n_heads = trial.suggest_categorical('n_heads', possible_n_heads)
@@ -189,7 +189,7 @@ if __name__ == '__main__':
 
     # 'n_trials' 是你想要尝试的超参数组合的总次数
     # 从一个较小的数字开始，比如 20，然后再增加
-    study.optimize(objective, n_trials=6)
+    study.optimize(objective, n_trials=10)
 
     # ---- 6. 输出优化结果 ----
     print("\n\n--- 优化完成 ---")
