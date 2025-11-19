@@ -14,14 +14,15 @@ model_name=TimeBridge
 seq_len=96
 GPU=1
 root=./data
+export MIOPEN_DISABLE_CACHE=1
+export MIOPEN_DEBUG_DISABLE_FIND_DB=1
+export HIP_VISIBLE_DEVICES=$GPU
 
 alpha=0.05
 data_name=Solar
 for pred_len in 720 96 192 336
 do
-  MIOPEN_DISABLE_CACHE=1 \
-  MIOPEN_SYSTEM_DB_PATH="" \
-  HIP_VISIBLE_DEVICES=1 \
+  HIP_VISIBLE_DEVICES=$GPU \
   python -u tune_big.py \
     --is_training 1 \
     --root_path $root/Solar/ \
