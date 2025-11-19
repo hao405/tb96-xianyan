@@ -12,6 +12,8 @@ fi
 
 model_name=TimeBridge
 seq_len=96
+# 设置使用的 GPU 数量（根据你的 GPU 数量调整）
+NUM_GPUS=8
 GPU=0,1,2,3,4,5,6,7
 root=./data
 
@@ -22,7 +24,8 @@ do
   MIOPEN_DISABLE_CACHE=1 \
   MIOPEN_SYSTEM_DB_PATH="" \
   HIP_VISIBLE_DEVICES="0,1,2,3,4,5,6,7" \
-  python -u tune_big.py \
+  torchrun --nproc_per_node=${NUM_GPUS} --master_port=29500 \
+    tune_big.py \
     --is_training 1 \
     --root_path $root/traffic/ \
     --data_path traffic.csv \

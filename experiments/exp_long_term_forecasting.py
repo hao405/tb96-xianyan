@@ -7,6 +7,8 @@ from utils.metrics import metric
 import torch
 import torch.nn as nn
 from torch import optim
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
 import os
 import time
 import warnings
@@ -25,7 +27,15 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         model = self.model_dict[self.args.model].Model(self.args).float()
 
         if self.args.use_multi_gpu and self.args.use_gpu:
-            model = nn.DataParallel(model, device_ids=self.args.device_ids)
+            # Use DistributedDataParallel instead of DataParallel
+            if hasattr(self.args, 'local_rank'):
+                # DDP mode
+                model = DDP(model, device_ids=[self.args.local_rank],
+                           output_device=self.args.local_rank,
+                           find_unused_parameters=True)
+            else:
+                # Fallback to DataParallel if not in DDP mode
+                model = nn.DataParallel(model, device_ids=self.args.device_ids)
         return model
 
     def _get_data(self, flag):
