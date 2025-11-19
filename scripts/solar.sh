@@ -13,11 +13,11 @@ fi
 model_name=TimeBridge
 seq_len=96
 GPU=0,1,2,3,4,5,6,7
-root=./dataset
+root=./data
 
 alpha=0.05
 data_name=Solar
-for pred_len in 96 192 336 720 96 192 336 720
+for pred_len in 96 192 336 720
 do
   MIOPEN_DISABLE_CACHE=1 \
   MIOPEN_SYSTEM_DB_PATH="" \
