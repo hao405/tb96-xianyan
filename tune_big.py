@@ -115,13 +115,13 @@ def objective(trial):
 
     args.learning_rate = trial.suggest_float('learning_rate', 2e-4, 7e-4, log=True)
     if args.data_path == 'electricity.csv':
-        args.batch_size = trial.suggest_categorical('batch_size', [24])
+        args.batch_size = trial.suggest_categorical('batch_size', [48])
         args.alpha = trial.suggest_float('alpha', 0.15, 0.25, log=True)
     elif args.data_path == 'traffic.csv':
         args.batch_size = trial.suggest_categorical('batch_size', [8])
         args.alpha = trial.suggest_float('alpha', 0.3, 0.4, log=True)
     elif args.data_path == 'solar_AL.txt':
-        args.batch_size = trial.suggest_categorical('batch_size', [16])
+        args.batch_size = trial.suggest_categorical('batch_size', [64])
         args.alpha = trial.suggest_float('alpha', 0.0001, 0.3, log=True)
     else:
         args.batch_size = trial.suggest_categorical('batch_size', [16,32,48,64])
