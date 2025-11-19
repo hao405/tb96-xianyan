@@ -38,7 +38,7 @@ do
     --ia_layers 1 \
     --des 'Exp' \
     --period 48 \
-    --num_p 12 \
+    --num_p 9 \
     --d_model 128 \
     --d_ff 128 \
     --alpha $alpha \
