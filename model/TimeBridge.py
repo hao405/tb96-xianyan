@@ -9,7 +9,6 @@ import torch.distributions as D
 
 from functorch import vmap, jacfwd, grad
 from torch.autograd.functional import jacobian
-from torch.func import functional_call # 确保已导入
 
 #nsts
 class MLP(nn.Module):
@@ -487,11 +486,6 @@ class NPTransitionPrior(nn.Module):
         self.compress_dim = compress_dim
         # self.fc = MLP(input_dim=embedding_dim,hidden_dim=hidden_dim, output_dim=hidden_dim, num_layers=2)
 
-        # 定义单样本的前向函数
-        def func_single(x):
-            # x: (input_dim,) -> unsqueeze -> (1, input_dim) -> forward -> squeeze -> (1,)
-            return functional_call(self.gs[i], (params, buffers), (x.unsqueeze(0),)).squeeze(0)
-
     def forward(self, x, mask=None):
         batch_size, lags_and_length, x_dim = x.shape
         length = lags_and_length - self.lags
@@ -520,15 +514,8 @@ class NPTransitionPrior(nn.Module):
 
             residual = self.gs[i](batch_inputs)  # (batch_size x length, 1)
 
-            # J = jacfwd(self.gs[i])
-            # data_J = vmap(J)(batch_inputs).squeeze()
-
-            params = dict(self.gs[i].named_parameters())
-            buffers = dict(self.gs[i].named_buffers())
-            # 计算 Jacobian
-            # vmap(jacfwd(func_single)) 将对 batch_inputs 的每一行单独计算 Jacobian
-            # batch_inputs: (B, D) -> Jacobian: (B, 1, D)
-            data_J = vmap(jacfwd(func_single))(batch_inputs).squeeze()
+            J = jacfwd(self.gs[i])
+            data_J = vmap(J)(batch_inputs).squeeze()
             logabsdet = torch.log(torch.abs(data_J[:, -1]))
 
             sum_log_abs_det_jacobian += logabsdet
@@ -556,11 +543,6 @@ class NPChangeTransitionPrior(nn.Module):
                                       output_dim=1, num_layers=num_layers) for _ in range(latent_size)])
         self.fc = MLP2(input_dim=embedding_dim, hidden_dim=hidden_dim,
                        output_dim=hidden_dim, num_layers=num_layers)
-
-    # 定义单样本的前向函数
-    def func_single(x):
-        # x: (input_dim,) -> unsqueeze -> (1, input_dim) -> forward -> squeeze -> (1,)
-        return functional_call(self.gs[i], (params, buffers), (x.unsqueeze(0),)).squeeze(0)
 
     def forward(self, x, embeddings):
         batch_size, lags_and_length, x_dim = x.shape
@@ -590,15 +572,8 @@ class NPChangeTransitionPrior(nn.Module):
 
             residual = self.gs[i](batch_inputs)  # (batch_size x length, 1)
 
-            # J = jacfwd(self.gs[i])
-            # data_J = vmap(J)(batch_inputs).squeeze()
-
-            params = dict(self.gs[i].named_parameters())
-            buffers = dict(self.gs[i].named_buffers())
-            # 计算 Jacobian
-            # vmap(jacfwd(func_single)) 将对 batch_inputs 的每一行单独计算 Jacobian
-            # batch_inputs: (B, D) -> Jacobian: (B, 1, D)
-            data_J = vmap(jacfwd(func_single))(batch_inputs).squeeze()
+            J = jacfwd(self.gs[i])
+            data_J = vmap(J)(batch_inputs).squeeze()
             logabsdet = torch.log(torch.abs(data_J[:, -1]))
 
             sum_log_abs_det_jacobian += logabsdet
