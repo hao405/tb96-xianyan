@@ -21,7 +21,7 @@ for pred_len in 720 96 192 336
 do
   MIOPEN_DISABLE_CACHE=1 \
   MIOPEN_SYSTEM_DB_PATH="" \
-  HIP_VISIBLE_DEVICES="0,1,2,3,4,5,6,7" \
+  HIP_VISIBLE_DEVICES="2" \
   python -u tune_big.py \
     --is_training 1 \
     --root_path $root/electricity/ \
@@ -47,6 +47,7 @@ do
     --alpha $alpha \
     --batch_size 16 \
     --devices 0,1,2,3,4,5,6,7 \
+    --gpu $GPU \
     --learning_rate 0.0005 \
     --itr 1 | tee logs/test/new/$data_name'_'$alpha'_'$model_name'_'$pred_len.logs
 done
