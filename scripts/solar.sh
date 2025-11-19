@@ -16,7 +16,7 @@ root=./data
 
 alpha=0.05
 data_name=Solar
-for pred_len in 96 192 336 720
+for pred_len in 720 96 192 336
 do
   MIOPEN_DISABLE_CACHE=1 \
   MIOPEN_SYSTEM_DB_PATH="" \
