@@ -514,8 +514,19 @@ class NPTransitionPrior(nn.Module):
 
             residual = self.gs[i](batch_inputs)  # (batch_size x length, 1)
 
-            J = jacfwd(self.gs[i])
-            data_J = vmap(J)(batch_inputs).squeeze()
+            # === 修正部分开始 ===
+            # 1. 获取当前子模块的参数
+            params = dict(self.gs[i].named_parameters())
+            buffers = dict(self.gs[i].named_buffers())
+
+            # 2. 在循环内部定义函数，这样它才能捕获到当前的 params, buffers 和 self.gs[i]
+            def func_single(x):
+                # x: (input_dim,) -> unsqueeze -> (1, input_dim) -> forward -> squeeze -> (1,)
+                return functional_call(self.gs[i], (params, buffers), (x.unsqueeze(0),)).squeeze(0)
+
+            # 3. 计算 Jacobian
+            data_J = vmap(jacfwd(func_single))(batch_inputs).squeeze()
+            # === 修正部分结束 ===
             logabsdet = torch.log(torch.abs(data_J[:, -1]))
 
             sum_log_abs_det_jacobian += logabsdet
@@ -572,8 +583,19 @@ class NPChangeTransitionPrior(nn.Module):
 
             residual = self.gs[i](batch_inputs)  # (batch_size x length, 1)
 
-            J = jacfwd(self.gs[i])
-            data_J = vmap(J)(batch_inputs).squeeze()
+            # === 修正部分开始 ===
+            # 1. 获取当前子模块的参数
+            params = dict(self.gs[i].named_parameters())
+            buffers = dict(self.gs[i].named_buffers())
+
+            # 2. 在循环内部定义函数，这样它才能捕获到当前的 params, buffers 和 self.gs[i]
+            def func_single(x):
+                # x: (input_dim,) -> unsqueeze -> (1, input_dim) -> forward -> squeeze -> (1,)
+                return functional_call(self.gs[i], (params, buffers), (x.unsqueeze(0),)).squeeze(0)
+
+            # 3. 计算 Jacobian
+            data_J = vmap(jacfwd(func_single))(batch_inputs).squeeze()
+            # === 修正部分结束 ===
             logabsdet = torch.log(torch.abs(data_J[:, -1]))
 
             sum_log_abs_det_jacobian += logabsdet
