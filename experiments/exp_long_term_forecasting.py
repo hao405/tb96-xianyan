@@ -99,23 +99,36 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         if not os.path.exists(path):
             os.makedirs(path)
 
+        time_now = time.time()
         train_steps = len(train_loader)
         early_stopping = EarlyStopping(patience=self.args.patience, verbose=True)
 
         model_optim = self._select_optimizer()
         criterion = self._select_criterion()
 
+        scheduler = None
+        if self.args.lradj == 'TST':
+            print("Using OneCycleLR Scheduler")
+            scheduler = lr_scheduler.OneCycleLR(optimizer=model_optim,
+                                                steps_per_epoch=train_steps,
+                                                pct_start=self.args.pct_start,
+                                                epochs=self.args.train_epochs,
+                                                max_lr=self.args.learning_rate)
+
+        # =================== Phase 1: Pre-training ===================
         for epoch in range(self.args.pre_epoches):
-            if epoch == 0:  # 仅在预训练的第一个 epoch 初始化列表
+            if epoch == 0:
                 batch_x_list = []
                 batch_y_list = []
                 batch_x_mark_list = []
                 batch_y_mark_list = []
                 batch_u_list = []
+
             iter_count = 0
             train_loss = []
             self.model.train()
             epoch_time = time.time()
+
             for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(train_loader):
                 iter_count += 1
                 model_optim.zero_grad()
@@ -124,20 +137,27 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 batch_x_mark = batch_x_mark.float().to(self.device)
                 batch_y_mark = batch_y_mark.float().to(self.device)
 
+                # === PEMS/Solar 判断逻辑 (Phase 1) ===
+                if 'PEMS' in self.args.data or 'Solar' in self.args.data:
+                    x_mark_input = None
+                    y_mark_input = None
+                else:
+                    x_mark_input = batch_x_mark
+                    y_mark_input = batch_y_mark
+                # =====================================
 
                 dec_inp = torch.zeros_like(batch_y[:, -self.args.pred_len:, :]).float()
                 dec_inp = torch.cat([batch_y[:, :self.args.label_len, :], dec_inp], dim=1).float().to(self.device)
                 f_dim = -1 if self.args.features == 'MS' else 0
                 batch_y_target = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
 
-                # 使用 TimeBridge 签名调用模型，但设置 is_out_u=True
+                # 使用处理后的 x_mark_input 和 y_mark_input
                 outputs, x_rec, other_loss, U = self.model(
-                    batch_x, batch_x_mark, dec_inp, batch_y_mark,
+                    batch_x, x_mark_input, dec_inp, y_mark_input,
                     y_enc=batch_y, is_train=True, is_out_u=True, c_est=None
                 )
 
-                # 收集用于阶段二的数据
-                # (仅在最后一个预训练 epoch 或 early stopping 时收集)
+                # 收集数据用于 Phase 2 (注意：这里收集原始的 batch_x_mark，因为 TensorDataset 不支持 None)
                 if epoch == self.args.pre_epoches - 1 or early_stopping.counter == self.args.patience - 1:
                     batch_x_list.append(batch_x.cpu())
                     batch_y_list.append(batch_y.cpu())
@@ -147,26 +167,27 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
                 outputs = outputs[:, -self.args.pred_len:, f_dim:]
 
-                # 计算 Time-Freq MAE 损失
                 loss = self.time_freq_mae(batch_y_target, outputs)
-
-                # 添加来自 VAE/HMM 的损失 (other_loss)
                 loss += other_loss
-                # 添加 TimeBridge 的重建损失
                 rec_loss = self.time_freq_mae(batch_x, x_rec) * self.args.rec_weight
                 loss += rec_loss
 
-                # print(f"Epoch {epoch}, Batch {i}:")
-                # print(f"  Time-Freq MAE Loss: {loss1.item():.6f}")
-                # print(f"  Other Loss (KL+HMM): {other_loss.item():.6f}")
-                # print(f"  rec Loss: {rec_loss.item():.6f}")
-                # print(f"  Total Loss: {loss.item():.6f}")
-
                 train_loss.append(loss.item())
 
+                if (i + 1) % 100 == 0:
+                    print("\titers: {0}, epoch: {1} | loss: {2:.7f}".format(i + 1, epoch + 1, loss.item()))
+                    speed = (time.time() - time_now) / iter_count
+                    left_time = speed * ((self.args.train_epochs - epoch) * train_steps - i)
+                    print('\tspeed: {:.4f}s/iter; left time: {:.4f}s'.format(speed, left_time))
+                    iter_count = 0
+                    time_now = time.time()
+
                 loss.backward()
-                # torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)  # 添加梯度裁剪以提高HMM稳定性
                 model_optim.step()
+
+                if self.args.lradj == 'TST':
+                    adjust_learning_rate(model_optim, scheduler, epoch + 1, self.args, printout=False)
+                    scheduler.step()
 
             print(f"Epoch: {epoch + 1} cost time: {time.time() - epoch_time}")
             train_loss = np.average(train_loss)
@@ -175,17 +196,17 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
             print(
                 f"Epoch: {epoch + 1}, Steps: {train_steps} | Train Loss: {train_loss:.7f} Vali Loss: {vali_loss:.7f} Test Loss: {test_loss:.7f}")
+
             early_stopping(vali_loss, self.model, path)
             if early_stopping.early_stop:
                 print("Early stopping during pre-training")
                 break
-            adjust_learning_rate(model_optim, None, epoch + 1, self.args)
 
-        # 阶段二：训练 VAE/Transformer (来自 exp_nsts_with_pre.py)
+            if self.args.lradj != 'TST':
+                adjust_learning_rate(model_optim, None, epoch + 1, self.args)
 
-        # 检查是否收集到了数据
+        # =================== Phase 2: Fine-tuning ===================
 
-            # 用收集到的 HMM 状态 (U) 创建新的数据集和加载器
         dataset = TensorDataset(
             torch.cat(batch_u_list, dim=0),
             torch.cat(batch_x_list, dim=0),
@@ -195,53 +216,67 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         )
         train_loader = DataLoader(dataset, self.args.batch_size, shuffle=True)
 
-        # 重置 early stopping
         early_stopping = EarlyStopping(patience=self.args.patience, verbose=True)
+
         for epoch in range(self.args.pre_epoches, self.args.train_epochs):
             iter_count = 0
             train_loss = []
             self.model.train()
             epoch_time = time.time()
 
-            # 注意：新的 train_loader 包含 batch_u
             for i, (batch_u, batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(train_loader):
                 iter_count += 1
                 model_optim.zero_grad()
 
-                # 将所有数据移动到 device
                 batch_u = batch_u.to(self.device)
                 batch_x = batch_x.float().to(self.device)
                 batch_y = batch_y.float().to(self.device)
                 batch_x_mark = batch_x_mark.float().to(self.device)
                 batch_y_mark = batch_y_mark.float().to(self.device)
 
-                # TimeBridge 需要的额外输入
+                # === PEMS/Solar 判断逻辑 (Phase 2) ===
+                if 'PEMS' in self.args.data or 'Solar' in self.args.data:
+                    x_mark_input = None
+                    y_mark_input = None
+                else:
+                    x_mark_input = batch_x_mark
+                    y_mark_input = batch_y_mark
+                # =====================================
+
                 dec_inp = torch.zeros_like(batch_y[:, -self.args.pred_len:, :]).float()
                 dec_inp = torch.cat([batch_y[:, :self.args.label_len, :], dec_inp], dim=1).float().to(self.device)
 
                 f_dim = -1 if self.args.features == 'MS' else 0
                 batch_y_target = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
 
-                # 使用 TimeBridge 签名调用模型，但这次传入 c_est=batch_u
-                # HMM 将被冻结，只训练 VAE/Transformer
+                # 使用处理后的 x_mark_input 和 y_mark_input
                 outputs, x_rec, other_loss, _ = self.model(
-                    batch_x, batch_x_mark, dec_inp, batch_y_mark,
+                    batch_x, x_mark_input, dec_inp, y_mark_input,
                     y_enc=batch_y, is_train=True, is_out_u=True, c_est=batch_u
                 )
 
                 outputs = outputs[:, -self.args.pred_len:, f_dim:]
 
                 loss = self.time_freq_mae(batch_y_target, outputs)
-                loss += other_loss  # 添加 VAE KL 损失
-
-                # (可选) 添加 TimeBridge 的重建损失
+                loss += other_loss
                 loss += self.time_freq_mae(batch_x, x_rec) * self.args.rec_weight
 
                 train_loss.append(loss.item())
 
+                if (i + 1) % 100 == 0:
+                    print("\titers: {0}, epoch: {1} | loss: {2:.7f}".format(i + 1, epoch + 1, loss.item()))
+                    speed = (time.time() - time_now) / iter_count
+                    left_time = speed * ((self.args.train_epochs - epoch) * train_steps - i)
+                    print('\tspeed: {:.4f}s/iter; left time: {:.4f}s'.format(speed, left_time))
+                    iter_count = 0
+                    time_now = time.time()
+
                 loss.backward()
-                # torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
                 model_optim.step()
+
+                if self.args.lradj == 'TST':
+                    adjust_learning_rate(model_optim, scheduler, epoch + 1, self.args)
+                    scheduler.step()
 
             print(f"Epoch: {epoch + 1} cost time: {time.time() - epoch_time}")
             train_loss = np.average(train_loss)
@@ -250,11 +285,16 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
             print(
                 f"Epoch: {epoch + 1}, Steps: {train_steps} | Train Loss: {train_loss:.7f} Vali Loss: {vali_loss:.7f} Test Loss: {test_loss:.7f}")
+
             early_stopping(vali_loss, self.model, path)
             if early_stopping.early_stop:
                 print("Early stopping")
                 break
-            adjust_learning_rate(model_optim, None, epoch + 1, self.args)
+
+            if self.args.lradj != 'TST':
+                adjust_learning_rate(model_optim, None, epoch + 1, self.args)
+            else:
+                print('Updating learning rate to {}'.format(scheduler.get_last_lr()[0]))
 
         best_model_path = path + '/' + 'checkpoint.pth'
         self.model.load_state_dict(torch.load(best_model_path))
