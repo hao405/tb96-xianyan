@@ -712,7 +712,7 @@ class Model(nn.Module):
         # print('zc_pred_std', zc_pred_std.shape)
         # print('zc_pred', zc_pred.shape)
 
-        dec_out_x = self.reparametrize(BXD_mean, BXD_std)
+        x = self.reparametrize(BXD_mean, BXD_std)
         # BXD_mean,BXD_mean,dec_out_x  shape [B,seq_len,D]
         zc_rec_mean, zd_rec_mean = torch.split(BXD_mean, [self.zc_dim, self.zd_dim], dim=2)
         zc_rec_std, zd_rec_std = torch.split(BXD_mean, [self.zc_dim, self.zd_dim], dim=2)
@@ -725,7 +725,6 @@ class Model(nn.Module):
         #print(torch.cat([zc_rec_mean.permute(0, 2, 1), zc_pred_mean.permute(0, 2, 1)], dim=2).permute(0, 2, 1).shape)
 
         # dec_out = self.final_mlp(dec_out)
-        x = self.final_mlp_x(dec_out_x)
         y = dec_out * std + mean
 
 
