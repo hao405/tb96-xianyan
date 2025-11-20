@@ -20,7 +20,7 @@ for pred_len in 720 96 192 336
 do
   MIOPEN_DISABLE_CACHE=1 \
   MIOPEN_SYSTEM_DB_PATH="" \
-  HIP_VISIBLE_DEVICES="1" \
+  HIP_VISIBLE_DEVICES="5" \
   python -u tune_big.py \
     --is_training 1 \
     --root_path $root/Solar/ \
