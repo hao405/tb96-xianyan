@@ -126,10 +126,10 @@ def objective(trial):
     else:
         args.batch_size = trial.suggest_categorical('batch_size', [16,32,48,64])
 
-    args.zd_kl_weight = trial.suggest_float('zd_kl_weight', 1e-17, 1e-12, log=True)
-    args.zc_kl_weight = trial.suggest_float('zc_kl_weight', 1e-17, 1e-12, log=True)
-    args.hmm_weight = trial.suggest_float('hmm_weight', 1e-17, 1e-12, log=True)
-    args.rec_weight = trial.suggest_float('rec_weight', 1e-17, 1e-12, log=True)
+    args.zd_kl_weight = trial.suggest_float('zd_kl_weight', 1e-30, 1e-20, log=True)
+    args.zc_kl_weight = trial.suggest_float('zc_kl_weight', 1e-30, 1e-20, log=True)
+    args.hmm_weight = trial.suggest_float('hmm_weight', 1e-30, 1e-20, log=True)
+    args.rec_weight = trial.suggest_float('rec_weight', 1e-30, 1e-20, log=True)
 
     # # 学习率调度器
     # args.ca_layers = trial.suggest_categorical('ca_layers', [2,3])
@@ -203,7 +203,7 @@ if __name__ == '__main__':
 
     # 'n_trials' 是你想要尝试的超参数组合的总次数
     # 从一个较小的数字开始，比如 20，然后再增加
-    study.optimize(objective, n_trials=4)
+    study.optimize(objective, n_trials=3)
 
     # ---- 6. 输出优化结果 ----
     print("\n\n--- 优化完成 ---")
