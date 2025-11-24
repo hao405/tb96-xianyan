@@ -49,7 +49,7 @@ do
     --learning_rate 0.0002 \
     --train_epochs 100 \
     --pct_start 0.2 \
-    --patience 15 \
+    --patience 10 \
     --batch_size 64 \
     --alpha $alpha \
     --itr 1 | tee logs/test/new/$data_name'_'$alpha'_'$model_name'_'$pred_len.logs
