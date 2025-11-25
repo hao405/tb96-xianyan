@@ -725,9 +725,9 @@ class Model(nn.Module):
 
         #print(torch.cat([zc_rec_mean.permute(0, 2, 1), zc_pred_mean.permute(0, 2, 1)], dim=2).permute(0, 2, 1).shape)
 
-        # dec_out = self.final_mlp(dec_out)
-        x = dec_out_x * std + mean
-        # x = self.final_mlp_x(dec_out_x)
+        dec_out = self.final_mlp(dec_out)
+        # x = dec_out_x * std + mean
+        x = self.final_mlp_x(dec_out_x)
         y = dec_out * std + mean
 
 
