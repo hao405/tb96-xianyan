@@ -115,10 +115,10 @@ def objective(trial):
 
     args.learning_rate = trial.suggest_float('learning_rate', 1e-4, 4e-4, log=True)
     args.batch_size = trial.suggest_categorical('batch_size', [32,48,64])
-    args.zd_kl_weight = trial.suggest_float('zd_kl_weight', 1e-12, 1e-3, log=True)
-    args.zc_kl_weight = trial.suggest_float('zc_kl_weight', 1e-12, 1e-3, log=True)
-    args.hmm_weight = trial.suggest_float('hmm_weight', 1e-12, 1e-3, log=True)
-    args.rec_weight = trial.suggest_float('rec_weight', 1e-12, 1e-3, log=True)
+    args.zd_kl_weight = trial.suggest_float('zd_kl_weight', 1e-25, 1e-18, log=True)
+    args.zc_kl_weight = trial.suggest_float('zc_kl_weight', 1e-25, 1e-18, log=True)
+    args.hmm_weight = trial.suggest_float('hmm_weight', 1e-25, 1e-18, log=True)
+    args.rec_weight = trial.suggest_float('rec_weight', 1e-25, 1e-18, log=True)
 
     # 学习率调度器
 
