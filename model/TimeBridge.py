@@ -704,7 +704,7 @@ class Model(nn.Module):
         BXD_std = self.decoder1_x(x_std).transpose(-1, -2)  # [B,X,D]
         BYD_std = self.decoder1(x_std).transpose(-1, -2)  # [B,Y,D]
 
-        dec_out = self.reparametrize(BYD_mean, BYD_std)
+        dec_out = self.reparametrize(BYD_mean, BYD_std) if is_train else BYD_mean
         # BYD_mean,BYD_std,dec_out  shape [B,pred_len,D]
         zc_pred_mean, zd_pred_mean = torch.split(BYD_mean, [self.zc_dim, self.zd_dim], dim=2)
         zc_pred_std, zd_pred_std = torch.split(BYD_std, [self.zc_dim, self.zd_dim], dim=2)
@@ -713,7 +713,7 @@ class Model(nn.Module):
         # print('zc_pred_std', zc_pred_std.shape)
         # print('zc_pred', zc_pred.shape)
 
-        dec_out_x = self.reparametrize(BXD_mean, BXD_std)
+        dec_out_x = self.reparametrize(BXD_mean, BXD_std) if is_train else BXD_mean
         # BXD_mean,BXD_mean,dec_out_x  shape [B,seq_len,D]
         zc_rec_mean, zd_rec_mean = torch.split(BXD_mean, [self.zc_dim, self.zd_dim], dim=2)
         zc_rec_std, zd_rec_std = torch.split(BXD_mean, [self.zc_dim, self.zd_dim], dim=2)
