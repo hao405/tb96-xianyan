@@ -617,9 +617,10 @@ class Model(nn.Module):
         self.embedding = PatchEmbed(configs, num_p=self.num_p)
         self.embedding1 = PatchEmbed(configs, num_p=self.num_p)
 
-        layers = self.layers_init(configs)
-        self.encoder = TSEncoder(layers)
-        self.encoder1 = TSEncoder(layers)
+        mean_layers = self.layers_init(configs)
+        std_layers = self.layers_init(configs)
+        self.encoder = TSEncoder(mean_layers)
+        self.encoder1 = TSEncoder(std_layers)
 
         out_p = self.num_p if configs.pd_layers == 0 else configs.num_p
         self.decoder = nn.Sequential(
