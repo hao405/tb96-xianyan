@@ -206,7 +206,7 @@ if __name__ == '__main__':
         print(f"    - {key}: {value}")
 
     # ---- 7. 将最佳结果写入文件 ----
-    output_dir = 'optuna_exchange192'
+    output_dir = 'optuna_exchange192_mlp'
     os.makedirs(output_dir, exist_ok=True)  # 确保文件夹存在
     # 从 data_path 中提取基本文件名，以避免路径问题
     # 例如, 从 './data/ETTh1.csv' 提取出 'ETTh1'
