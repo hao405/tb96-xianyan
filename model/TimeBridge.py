@@ -316,25 +316,58 @@ class Encoder_ZD(nn.Module):
     def kl_loss(self, mus, logvars, z_est, c_embedding):
         lags_and_length = z_est.shape[1]
 
+        # 0: 添加方差下界正则化，防止后验坍缩
+        # 计算 logvars 的平均值，如果太小，添加惩罚
+        logvars_mean = logvars.mean()
+        variance_penalty = torch.relu(-2.0 - logvars_mean) * 0.1  # 如果平均 logvar < -2，添加惩罚
 
-        q_dist = D.Normal(mus, torch.exp(logvars / 2))
+        # 1: 限制 logvars 范围，防止方差过小或过大导致数值不稳定
+        logvars = torch.clamp(logvars, min=-5.0, max=10.0)  # 改为 -5.0，不要让方差太小
+        # 处理 NaN
+        logvars = torch.nan_to_num(logvars, nan=0.0, posinf=10.0, neginf=-5.0)
+
+        # 2: 添加 epsilon 防止数值下溢
+        std = torch.exp(logvars / 2) + 1e-6
+        q_dist = D.Normal(mus, std)
         log_qz = q_dist.log_prob(z_est)
-        # print(q_dist)
+
+        # 检查是否有 NaN 或 Inf
+        # if torch.isnan(log_qz).any() or torch.isinf(log_qz).any():
+        #     print(f"⚠️ Warning: NaN or Inf in log_qz! min={log_qz.min():.2e}, max={log_qz.max():.2e}")
+        #     log_qz = torch.nan_to_num(log_qz, nan=0.0, posinf=100.0, neginf=-100.0)
+
         # Future KLD
         log_qz_laplace = log_qz
         residuals, logabsdet = self.nonstationary_transition_prior.forward(z_est, c_embedding)
 
+        # 3: 限制 residuals 范围，防止 log_prob 计算出极值
+        residuals = torch.clamp(residuals, min=-50.0, max=50.0)
+
+        # 3.5: 限制 logabsdet 范围
+        logabsdet = torch.clamp(logabsdet, min=-100.0, max=100.0)
+
         log_pz_laplace = torch.sum(self.nonstationary_dist.log_prob(
             residuals), dim=1) + logabsdet.sum(dim=1)
-        # print(log_pz_laplace)
-        # print(log_qz_laplace)
+
+        # 调试信息
+        # if torch.rand(1).item() < 0.02:  # 2% 概率打印
+        #     log_qz_sum = torch.sum(torch.sum(log_qz_laplace, dim=-1), dim=-1).mean()
+        #     print(f"[ZD KL Debug] log_q_sum: {log_qz_sum:.2e}, log_p: {log_pz_laplace.mean():.2e}, "
+        #           f"logvar_mean: {logvars_mean:.2e}")
+
         kld_laplace = (
                               torch.sum(torch.sum(log_qz_laplace, dim=-1), dim=-1) - log_pz_laplace) / (
                           lags_and_length)
         kld_laplace = kld_laplace.mean()
-        # 4: 使用绝对值
-        loss = torch.abs(kld_laplace)
 
+        # 4: 使用绝对值 + 方差惩罚
+        loss = torch.abs(kld_laplace) + variance_penalty
+
+        # 记录原始 KL 的符号
+        if torch.rand(1).item() < 0.02:  # 2% 概率打印
+            if kld_laplace < -5.0:
+                print(f"[ZD] Negative KL: {kld_laplace:.4f} -> abs: {torch.abs(kld_laplace):.4f}, "
+                      f"var_penalty: {variance_penalty:.4f}")
 
         return loss
 
@@ -406,10 +439,27 @@ class Encoder_ZC(nn.Module):
 
     def kl_loss(self, mus, logvars, z_est):
         lags_and_length = z_est.shape[1]
-        q_dist = D.Normal(mus, torch.exp(logvars / 2))
+
+        # 0: 添加方差下界正则化
+        # logvars_mean = logvars.mean()
+        # variance_penalty = torch.relu(-2.0 - logvars_mean) * 0.1
+
+        # 1: 限制 logvars 范围，不要太小
+        logvars = torch.clamp(logvars, min=-5.0, max=10.0)
+        # 处理 NaN
+        logvars = torch.nan_to_num(logvars, nan=0.0, posinf=10.0, neginf=-5.0)
+
+        # 2: 添加 epsilon 防止数值下溢
+        std = torch.exp(logvars / 2) + 1e-6
+        q_dist = D.Normal(mus, std)
         log_qz = q_dist.log_prob(z_est)
 
-        # Past KLD 让过去的时间步服从正态分布
+        # 检查是否有 NaN 或 Inf
+        # if torch.isnan(log_qz).any() or torch.isinf(log_qz).any():
+        #     print(f"⚠️ Warning: NaN or Inf in log_qz (ZC)! min={log_qz.min():.2e}, max={log_qz.max():.2e}")
+        #     log_qz = torch.nan_to_num(log_qz, nan=0.0, posinf=100.0, neginf=-100.0)
+
+        # Past KLD
         p_dist = D.Normal(torch.zeros_like(
             mus[:, :self.lags]), torch.ones_like(logvars[:, :self.lags]))
         log_pz_normal = torch.sum(
@@ -418,11 +468,25 @@ class Encoder_ZC(nn.Module):
             torch.sum(log_qz[:, :self.lags], dim=-1), dim=-1)
         kld_normal = log_qz_normal - log_pz_normal
         kld_normal = kld_normal.mean()
-        # Future KLD qz 是后验，pz 是先验
+
+        # Future KLD
         log_qz_laplace = log_qz[:, self.lags:]
         residuals, logabsdet = self.stationary_transition_prior(z_est)
+
+        # # 3: 限制 residuals 范围
+        # residuals = torch.clamp(residuals, min=-50.0, max=50.0)
+        #
+        # # 3.5: 限制 logabsdet 范围
+        # logabsdet = torch.clamp(logabsdet, min=-100.0, max=100.0)
+
         log_pz_laplace = torch.sum(self.stationary_dist.log_prob(
             residuals), dim=1) + logabsdet.sum(dim=1)
+
+        # 调试信息
+        # if torch.rand(1).item() < 0.02:  # 2% 概率打印
+        #     print(f"[ZC KL Debug] kld_normal: {kld_normal:.2e}, kld_laplace: {(torch.sum(torch.sum(log_qz_laplace, dim=-1), dim=-1) - log_pz_laplace).mean()/(lags_and_length - self.lags):.2e}, "
+        #           f"logvar_mean: {logvars_mean:.2e}")
+
         kld_laplace = (
                               torch.sum(torch.sum(log_qz_laplace, dim=-1), dim=-1) - log_pz_laplace) / (
                               lags_and_length - self.lags)
@@ -617,10 +681,9 @@ class Model(nn.Module):
         self.embedding = PatchEmbed(configs, num_p=self.num_p)
         self.embedding1 = PatchEmbed(configs, num_p=self.num_p)
 
-        mean_layers = self.layers_init(configs)
-        std_layers = self.layers_init(configs)
-        self.encoder = TSEncoder(mean_layers)
-        self.encoder1 = TSEncoder(std_layers)
+        layers = self.layers_init(configs)
+        self.encoder = TSEncoder(layers)
+        self.encoder1 = TSEncoder(layers)
 
         out_p = self.num_p if configs.pd_layers == 0 else configs.num_p
         self.decoder = nn.Sequential(
@@ -704,7 +767,7 @@ class Model(nn.Module):
         BXD_std = self.decoder1_x(x_std).transpose(-1, -2)  # [B,X,D]
         BYD_std = self.decoder1(x_std).transpose(-1, -2)  # [B,Y,D]
 
-        dec_out = self.reparametrize(BYD_mean, BYD_std) if is_train else BYD_mean
+        dec_out = self.reparametrize(BYD_mean, BYD_std)
         # BYD_mean,BYD_std,dec_out  shape [B,pred_len,D]
         zc_pred_mean, zd_pred_mean = torch.split(BYD_mean, [self.zc_dim, self.zd_dim], dim=2)
         zc_pred_std, zd_pred_std = torch.split(BYD_std, [self.zc_dim, self.zd_dim], dim=2)
@@ -713,7 +776,7 @@ class Model(nn.Module):
         # print('zc_pred_std', zc_pred_std.shape)
         # print('zc_pred', zc_pred.shape)
 
-        dec_out_x = self.reparametrize(BXD_mean, BXD_std) if is_train else BXD_mean
+        dec_out_x = self.reparametrize(BXD_mean, BXD_std)
         # BXD_mean,BXD_mean,dec_out_x  shape [B,seq_len,D]
         zc_rec_mean, zd_rec_mean = torch.split(BXD_mean, [self.zc_dim, self.zd_dim], dim=2)
         zc_rec_std, zd_rec_std = torch.split(BXD_mean, [self.zc_dim, self.zd_dim], dim=2)
@@ -726,7 +789,6 @@ class Model(nn.Module):
         #print(torch.cat([zc_rec_mean.permute(0, 2, 1), zc_pred_mean.permute(0, 2, 1)], dim=2).permute(0, 2, 1).shape)
 
         # dec_out = self.final_mlp(dec_out)
-        # x = dec_out_x * std + mean
         x = self.final_mlp_x(dec_out_x)
         y = dec_out * std + mean
 
