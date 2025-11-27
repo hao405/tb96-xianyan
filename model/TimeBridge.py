@@ -727,7 +727,8 @@ class Model(nn.Module):
 
         # dec_out = self.final_mlp(dec_out)
         # x = dec_out_x * std + mean
-        x = self.final_mlp_x(dec_out_x)
+        # x = self.final_mlp_x(dec_out_x)
+        x = dec_out_x * std + mean
         y = dec_out * std + mean
 
 
