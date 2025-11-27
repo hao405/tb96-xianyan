@@ -113,22 +113,22 @@ def objective(trial):
     # Optuna 将从这里动态地建议超参数，覆盖默认值
     args = parser.parse_args()  # 使用空列表来避免解析命令行
 
-    args.learning_rate = trial.suggest_float('learning_rate', 1e-4, 3e-4, log=True)
-    args.batch_size = trial.suggest_categorical('batch_size', [32,48,64])
-    args.zd_kl_weight = trial.suggest_float('zd_kl_weight', 1e-18, 1e-10, log=True)
-    args.zc_kl_weight = trial.suggest_float('zc_kl_weight', 1e-18, 1e-10, log=True)
-    args.hmm_weight = trial.suggest_float('hmm_weight', 1e-18, 1e-10, log=True)
-    args.rec_weight = trial.suggest_float('rec_weight', 1e-18, 1e-9, log=True)
+    args.learning_rate = trial.suggest_float('learning_rate', 1e-4, 2.5e-4, log=True)
+    args.batch_size = trial.suggest_categorical('batch_size', [32,48])
+    args.zd_kl_weight = trial.suggest_float('zd_kl_weight', 1e-5, 1, log=True)
+    args.zc_kl_weight = trial.suggest_float('zc_kl_weight', 1e-5, 1, log=True)
+    args.hmm_weight = trial.suggest_float('hmm_weight', 1e-7, 1e-4, log=True)
+    args.rec_weight = trial.suggest_float('rec_weight', 1e-7, 1e-4, log=True)
 
     # 学习率调度器
 
     args.ca_layers = trial.suggest_categorical('ca_layers', [0,1])
     args.pd_layers = 1
-    args.ia_layers = trial.suggest_categorical('ia_layers', [2,3])
+    args.ia_layers = trial.suggest_categorical('ia_layers', [3])
     args.alpha = trial.suggest_float('alpha', 0.01, 0.25, log=True)
 
         
-    possible_n_heads = [h for h in [4,16,32] if args.d_model % h == 0]
+    possible_n_heads = [h for h in [4,16] if args.d_model % h == 0]
     
     if not possible_n_heads:  # 如果没有可用的 n_heads，则跳过此次试验
         raise optuna.exceptions.TrialPruned()
@@ -206,7 +206,7 @@ if __name__ == '__main__':
         print(f"    - {key}: {value}")
 
     # ---- 7. 将最佳结果写入文件 ----
-    output_dir = 'optuna_exchange192xiaorong2'
+    output_dir = 'optuna_exchangexiao'
     os.makedirs(output_dir, exist_ok=True)  # 确保文件夹存在
     # 从 data_path 中提取基本文件名，以避免路径问题
     # 例如, 从 './data/ETTh1.csv' 提取出 'ETTh1'
