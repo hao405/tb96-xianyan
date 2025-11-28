@@ -117,10 +117,10 @@ def objective(trial):
     args.learning_rate = trial.suggest_float('learning_rate', 1e-4, 4e-4, log=True)
     args.batch_size = trial.suggest_categorical('batch_size', [16,32,48])
 
-    args.zd_kl_weight = trial.suggest_float('zd_kl_weight', 1e-5, 1, log=True)
-    args.zc_kl_weight = trial.suggest_float('zc_kl_weight', 1e-5, 1, log=True)
-    args.hmm_weight = trial.suggest_float('hmm_weight', 1e-7, 1e-4, log=True)
-    args.rec_weight = trial.suggest_float('rec_weight', 1e-7, 1e-4, log=True)
+    args.zd_kl_weight = trial.suggest_float('zd_kl_weight', 1e-20, 1e-12, log=True)
+    args.zc_kl_weight = trial.suggest_float('zc_kl_weight', 1e-20, 1e-12, log=True)
+    args.hmm_weight = trial.suggest_float('hmm_weight', 1e-20, 1e-12, log=True)
+    args.rec_weight = trial.suggest_float('rec_weight', 1e-20, 1e-12, log=True)
 
     # # 学习率调度器
     args.ca_layers = trial.suggest_categorical('ca_layers', [1])
@@ -206,7 +206,7 @@ if __name__ == '__main__':
         print(f"    - {key}: {value}")
 
     # ---- 7. 将最佳结果写入文件 ----
-    output_dir = 'optuna_weatherxiaorong2'
+    output_dir = 'optuna_weather'
     os.makedirs(output_dir, exist_ok=True)  # 确保文件夹存在
     # 从 data_path 中提取基本文件名，以避免路径问题
     # 例如, 从 './data/ETTh1.csv' 提取出 'ETTh1'
