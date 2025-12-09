@@ -13,14 +13,14 @@ data_name = "solar_AL"
 root='./data' # 数据集根路径
 data_path = 'Solar' # 可选[ETT-small，electricity，exchange_rate，illness，traffic，weather]
 seq_len=96
-alpha=0.001035967
+alpha=0.001615637
 
 enc_in=137
 
 # 定义要搜索的参数网格
-pred_len = [96]
+pred_len = [192]
 batch_sizes = [32]
-learning_rates = [0.000612617]
+learning_rates = [0.000410426]
 ca_layers = [2]  # 长期
 pd_layers = [1]
 ia_layers = [1]  # 短期
@@ -62,7 +62,7 @@ for batch_size,lr,ca_layers,pd_layers,ia_layers,pred_len ,seed in param_combinat
         "--itr", "1",
         "--batch_size",str(batch_size),
         "--seed",str(seed),
-        "--n_heads","16",
+        "--n_heads","8",
         "--seed", str(seed)
     ]
 
