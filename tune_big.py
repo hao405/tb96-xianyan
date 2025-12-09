@@ -98,7 +98,7 @@ def objective(trial):
     parser.add_argument('--zd_kl_weight', type=float, default=1e-9, help='num of encoder layers')
     parser.add_argument('--zc_kl_weight', type=float, default=1e-9, help='num of encoder layers')
     parser.add_argument('--hmm_weight', type=float, default=1e-9, help='num of encoder layers')
-    parser.add_argument('--rec_weight', type=float, default=1e-10, help='latent dimension of koopman embedding')
+    parser.add_argument('--rec_weight', type=float, default=0, help='latent dimension of koopman embedding')
     parser.add_argument('--n_class', type=int, default=4, help='num of encoder layers')
     parser.add_argument('--No_prior', action='store_true', default=False, help='num of encoder layers')
     parser.add_argument('--lags', type=int, default=1, help='num of encoder layers')
