@@ -12,19 +12,19 @@ model_name = "TimeBridge"
 data_name = "solar_AL"
 root='./data' # 数据集根路径
 data_path = 'Solar' # 可选[ETT-small，electricity，exchange_rate，illness，traffic，weather]
-seq_len=720
-alpha=0.042826965
+seq_len=96
+alpha=0.001035967
 
 enc_in=137
 
 # 定义要搜索的参数网格
-pred_len = [336]
+pred_len = [96,192,336,720]
 batch_sizes = [32]
-learning_rates = [0.000779733]
+learning_rates = [0.000612617]
 ca_layers = [2]  # 长期
 pd_layers = [1]
 ia_layers = [1]  # 短期
-seed=list(range(2000,2100))
+seed=list(range(2020,2050))
 
 # 生成所有参数组合
 param_combinations = product(batch_sizes, learning_rates,ca_layers,pd_layers,ia_layers,pred_len,seed)
@@ -62,7 +62,7 @@ for batch_size,lr,ca_layers,pd_layers,ia_layers,pred_len ,seed in param_combinat
         "--itr", "1",
         "--batch_size",str(batch_size),
         "--seed",str(seed),
-        "--n_heads","8",
+        "--n_heads","16",
         "--seed", str(seed)
     ]
 
