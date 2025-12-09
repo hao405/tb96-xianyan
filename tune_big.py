@@ -98,7 +98,7 @@ def objective(trial):
     parser.add_argument('--zd_kl_weight', type=float, default=1e-9, help='num of encoder layers')
     parser.add_argument('--zc_kl_weight', type=float, default=1e-9, help='num of encoder layers')
     parser.add_argument('--hmm_weight', type=float, default=1e-9, help='num of encoder layers')
-    parser.add_argument('--rec_weight', type=float, default=0, help='latent dimension of koopman embedding')
+    parser.add_argument('--rec_weight', type=float, default=1e-10, help='latent dimension of koopman embedding')
     parser.add_argument('--n_class', type=int, default=4, help='num of encoder layers')
     parser.add_argument('--No_prior', action='store_true', default=False, help='num of encoder layers')
     parser.add_argument('--lags', type=int, default=1, help='num of encoder layers')
@@ -118,10 +118,10 @@ def objective(trial):
         args.batch_size = trial.suggest_categorical('batch_size', [24])
         args.alpha = trial.suggest_float('alpha', 0.15, 0.25, log=True)
     elif args.data_path == 'traffic.csv':
-        args.batch_size = trial.suggest_categorical('batch_size', [8])
+        args.batch_size = trial.suggest_categorical('batch_size', [32])
         args.alpha = trial.suggest_float('alpha', 0.3, 0.4, log=True)
     elif args.data_path == 'solar_AL.txt':
-        args.batch_size = trial.suggest_categorical('batch_size', [16])
+        args.batch_size = trial.suggest_categorical('batch_size', [32])
         args.alpha = trial.suggest_float('alpha', 0.0001, 0.3, log=True)
     else:
         args.batch_size = trial.suggest_categorical('batch_size', [16,32,48,64])
