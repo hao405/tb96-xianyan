@@ -749,7 +749,7 @@ class Model(nn.Module):
             # zd_kl_loss = self.encoder_zd.kl_loss(torch.cat([zd_rec_mean, zd_pred_mean], dim=1),
             #                                      torch.cat([zd_rec_std, zd_pred_std], dim=1),
             #                                      torch.cat([zd_rec, zd_pred], dim=1), embeddings)
-            other_loss += zc_kl_loss * self.configs.zc_kl_weight + zd_kl_loss * self.configs.zd_kl_weight
+            # other_loss += zc_kl_loss * self.configs.zc_kl_weight + zd_kl_loss * self.configs.zd_kl_weight
             other_loss += hmm_loss * self.configs.hmm_weight
             # print("zc_kl_loss:", zc_kl_loss.item(), "zd_kl_loss:", zd_kl_loss.item(), "hmm_loss:", hmm_loss.item(), "other_loss:", other_loss.item())
             if is_out_u:
