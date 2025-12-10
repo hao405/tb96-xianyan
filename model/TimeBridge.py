@@ -69,7 +69,24 @@ class MLP(nn.Module):
         # y:     B x S x f_out
         y = self.layers(x)
         return y
-
+def rms_normalize(x: torch.Tensor, dim=-1, keepdim=True, eps=1e-8):
+    """
+    对张量做RMS标准化: x / sqrt(mean(x^2) + eps)
+    Args:
+        x: 需要归一化的张量
+        dim: 计算均方根的维度, 默认为最后一维
+        keepdim: 是否保留归一化维度
+        eps: 数值稳定项
+    """
+    if dim is None:
+        rms = x.pow(2).mean().sqrt()
+        if keepdim:
+            rms = rms.view(*([1] * x.ndim))
+    else:
+        rms = x.pow(2).mean(dim=dim, keepdim=True).sqrt()
+        if not keepdim:
+            rms = rms.squeeze(dim)
+    return x / (rms + eps)
 
 class MLP2(nn.Module):
     """A simple MLP with ReLU activations"""
@@ -684,6 +701,11 @@ class Model(nn.Module):
         z = mu + std * eps
         return z
 
+    def standardize(self,x, dim=-1, keepdim=True, eps=1e-5):
+        mean = x.mean(dim=dim, keepdim=keepdim)
+        std = x.std(dim=dim, keepdim=keepdim)
+        return (x - mean) / (std + eps)
+
     def forecast(self, x_enc, x_mark_enc, x_dec, x_mark_dec,y_enc=None,is_train=True, is_out_u=False, c_est=None):
         if x_mark_enc is None:
             x_mark_enc = torch.zeros((*x_enc.shape[:-1], 4), device=x_enc.device)
@@ -696,37 +718,30 @@ class Model(nn.Module):
 
         x_mean = self.embedding(x_enc, x_mark_enc)
         x_mean = self.encoder(x_mean)[0][:, :self.c_in, ...]
+        x_mean = self.standardize(x_mean)
         BXD_mean = self.decoder_x(x_mean).transpose(-1, -2) # [B,X,D]
         BYD_mean = self.decoder(x_mean).transpose(-1, -2)  # [B,Y,D]
 
         x_std = self.embedding1(x_enc, x_mark_enc)
         x_std = self.encoder1(x_std)[0][:, :self.c_in, ...]
+        x_std = self.standardize(x_std)
         BXD_std = self.decoder1_x(x_std).transpose(-1, -2)  # [B,X,D]
         BYD_std = self.decoder1(x_std).transpose(-1, -2)  # [B,Y,D]
 
-        dec_out = self.reparametrize(BYD_mean, BYD_std)
+        dec_out = self.reparametrize(BYD_mean, BYD_std) if is_train else BYD_mean
         # BYD_mean,BYD_std,dec_out  shape [B,pred_len,D]
         zc_pred_mean, zd_pred_mean = torch.split(BYD_mean, [self.zc_dim, self.zd_dim], dim=2)
         zc_pred_std, zd_pred_std = torch.split(BYD_std, [self.zc_dim, self.zd_dim], dim=2)
         zc_pred, zd_pred = torch.split(dec_out, [self.zc_dim, self.zd_dim], dim=2)
-        # print('zc_pred_mean', zc_pred_mean.shape)
-        # print('zc_pred_std', zc_pred_std.shape)
-        # print('zc_pred', zc_pred.shape)
 
-        dec_out_x = self.reparametrize(BXD_mean, BXD_std)
+        dec_out_x = self.reparametrize(BXD_mean, BXD_std) if is_train else BXD_mean
         # BXD_mean,BXD_mean,dec_out_x  shape [B,seq_len,D]
         zc_rec_mean, zd_rec_mean = torch.split(BXD_mean, [self.zc_dim, self.zd_dim], dim=2)
         zc_rec_std, zd_rec_std = torch.split(BXD_mean, [self.zc_dim, self.zd_dim], dim=2)
         zc_rec, zd_rec = torch.split(dec_out_x, [self.zc_dim, self.zd_dim], dim=2)
 
-        # print('zc_rec_mean', zc_rec_mean.shape)
-        # print('zc_rec_std', zc_rec_std.shape)
-        # print('zc_rec', zc_rec.shape)
-
-        #print(torch.cat([zc_rec_mean.permute(0, 2, 1), zc_pred_mean.permute(0, 2, 1)], dim=2).permute(0, 2, 1).shape)
 
         # dec_out = self.final_mlp(dec_out)
-        # x = dec_out_x * std + mean
         # x = self.final_mlp_x(dec_out_x)
         x = dec_out_x * std + mean
         y = dec_out * std + mean
@@ -749,9 +764,8 @@ class Model(nn.Module):
             # zd_kl_loss = self.encoder_zd.kl_loss(torch.cat([zd_rec_mean, zd_pred_mean], dim=1),
             #                                      torch.cat([zd_rec_std, zd_pred_std], dim=1),
             #                                      torch.cat([zd_rec, zd_pred], dim=1), embeddings)
+            other_loss +=  hmm_loss * self.configs.hmm_weight
             # other_loss += zc_kl_loss * self.configs.zc_kl_weight + zd_kl_loss * self.configs.zd_kl_weight
-            other_loss += hmm_loss * self.configs.hmm_weight
-            # print("zc_kl_loss:", zc_kl_loss.item(), "zd_kl_loss:", zd_kl_loss.item(), "hmm_loss:", hmm_loss.item(), "other_loss:", other_loss.item())
             if is_out_u:
                 return y, x, other_loss, c_est
         return y, x, other_loss

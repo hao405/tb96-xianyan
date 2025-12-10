@@ -168,7 +168,12 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 outputs = outputs[:, -self.args.pred_len:, f_dim:]
 
                 loss = self.time_freq_mae(batch_y_target, outputs)
+
+                # [修复 1] 处理 DataParallel 返回的 loss 向量
+                if other_loss.dim() > 0:
+                    other_loss = other_loss.mean()
                 loss += other_loss
+
                 rec_loss = self.time_freq_mae(batch_x, x_rec) * self.args.rec_weight
                 loss += rec_loss
 
@@ -258,7 +263,12 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 outputs = outputs[:, -self.args.pred_len:, f_dim:]
 
                 loss = self.time_freq_mae(batch_y_target, outputs)
+
+                # [修复 2] 处理 DataParallel 返回的 loss 向量
+                if other_loss.dim() > 0:
+                    other_loss = other_loss.mean()
                 loss += other_loss
+
                 loss += self.time_freq_mae(batch_x, x_rec) * self.args.rec_weight
 
                 train_loss.append(loss.item())
