@@ -13,12 +13,12 @@ data_name = "traffic"
 root='./data' # 数据集根路径
 data_path = 'traffic' # 可选[ETT-small，electricity，exchange_rate，illness，traffic，weather]
 seq_len=96
-pred_len=336 #36 48 60
-lr=0.000395952
+pred_len=[96,192,336,720] #36 48 60
+lr=0.000315524
 ca=3
 ia=1
 n_head=64
-alpha=0.332089167
+alpha=0.32871622
 
 enc_in=862
 
@@ -28,7 +28,7 @@ learning_rates = [lr]
 ca_layers = [ca]  # 长期
 pd_layers = [1]
 ia_layers = [ia]  # 短期
-seed=list(range(2020,2050))
+seed=list(range(2023,2033))
 
 # 生成所有参数组合
 param_combinations = product(batch_sizes, learning_rates, ca_layers, pd_layers, ia_layers,seed)
@@ -62,7 +62,7 @@ for batch_size, lr, ca_layers, pd_layers, ia_layers ,seed in param_combinations:
         "--ia_layers",str(ia_layers),
         "--batch_size",str(batch_size),
         "--attn_dropout","0.15",
-        "--devices","4,3,0,1,2,5,6,7",
+        "--devices","0,1,2,3,4,5,6,7",
         "--use_multi_gpu",
         "--alpha",f"{alpha}",
         "--learning_rate",str(lr),
@@ -70,6 +70,10 @@ for batch_size, lr, ca_layers, pd_layers, ia_layers ,seed in param_combinations:
         "--train_epochs","100",
         "--itr","1",
         "--seed",str(seed),
+        "--zd_kl_weight", "1e-15",
+        "--zc_kl_weight", "1e-15",
+        "--hmm_weight", "1e-14",
+        "--rec_weight", "5e-1"
     ]
 
     # 执行命令并实时输出

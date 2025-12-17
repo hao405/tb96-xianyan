@@ -2,8 +2,9 @@ import subprocess
 import os
 from itertools import product
 
+
 # 设置环境变量（指定GPU）
-os.environ["HIP_VISIBLE_DEVICES"] = "4,5,6,7"
+os.environ["HIP_VISIBLE_DEVICES"] = "0,1,2,3,4,5,6,7"
 os.environ["MIOPEN_DISABLE_CACHE"] = "1"
 os.environ["MIOPEN_SYSTEM_DB_PATH"] = ""
 
@@ -18,19 +19,21 @@ alpha=0.2
 enc_in=321
 
 # 定义要搜索的参数网格
-pred_len = [96]
-batch_sizes = [16]
+pred_len = [96,192,336,720]
+batch_sizes = [64]
 learning_rates = [0.0005]
 ca_layers = [2]  # 长期
 pd_layers = [1]
 ia_layers = [1]  # 短期
-seed = list(range(2000,2100))
+seed = list(range(2030,2050))
+rec_weight = [0.01]
+
 
 # 生成所有参数组合
-param_combinations = product(batch_sizes, learning_rates, ca_layers, pd_layers, ia_layers,pred_len,seed)
+param_combinations = product(batch_sizes, learning_rates, ca_layers, pd_layers, ia_layers,pred_len,seed,rec_weight)
 
 # 遍历每个参数组合并执行命令
-for batch_size, lr, ca_layers, pd_layers, ia_layers ,pred_len,seed in param_combinations:
+for batch_size, lr, ca_layers, pd_layers, ia_layers ,pred_len,seed,rec_weight in param_combinations:
     print(f"\n===== 开始执行参数组合: batch_size={batch_size}, learning_rate={lr}=====")
 
     # 构建命令列表
@@ -58,14 +61,15 @@ for batch_size, lr, ca_layers, pd_layers, ia_layers ,pred_len,seed in param_comb
         "--ia_layers",str(ia_layers),
         "--batch_size",str(batch_size),
         "--attn_dropout","0.1",
-        "--devices","0,1,2,3",
+        "--devices","0,1,2,3,4,5,6,7",
         "--use_multi_gpu",
         "--alpha",f"{alpha}",
         "--gpu","1",
         "--learning_rate",str(lr),
         "--train_epochs","100",
         "--itr","1",
-        "--seed",str(seed)
+        "--seed",str(seed),
+        "--rec_weight",str(rec_weight)
     ]
 
     # 执行命令并实时输出

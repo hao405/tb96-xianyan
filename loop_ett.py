@@ -3,7 +3,7 @@ import os
 from itertools import product
 
 # 设置环境变量（指定GPU）
-os.environ["HIP_VISIBLE_DEVICES"] = "4"
+os.environ["HIP_VISIBLE_DEVICES"] = "1"
 os.environ["MIOPEN_DISABLE_CACHE"] = "1"
 os.environ["MIOPEN_SYSTEM_DB_PATH"] = ""
 
@@ -13,13 +13,14 @@ data_name = "ETTh1"
 root='./data' # 数据集根路径
 data_path = 'ETT-small' # 可选[ETT-small，electricity，exchange_rate，illness，traffic，weather]
 seq_len=96
-pred_len=192 #36 48 60
-lr=0.000366033
-bs=32
+pred_len=[96] #36 48 60
+lr=0.000348538
+bs=16
 ca=0
 ia=2
-n_head=16
-alpha=0.329616726
+n_head=8
+alpha=0.383301731
+rec_weight = [2]
 
 enc_in=7
 
@@ -29,13 +30,13 @@ learning_rates = [lr]
 ca_layers = [ca]  # 长期
 pd_layers = [1]
 ia_layers = [ia]  # 短期
-seed=list(range(2023,2025))
+seed=list(range(2024,2030))
 # 生成所有参数组合
-param_combinations = product(batch_sizes, learning_rates,ca_layers,pd_layers,ia_layers,seed)
+param_combinations = product(batch_sizes, learning_rates,ca_layers,pd_layers,ia_layers,pred_len,seed,rec_weight)
 
 # 遍历每个参数组合并执行命令
-for batch_size,lr,ca_layers,pd_layers,ia_layers,seed in param_combinations:
-    print(f"\n===== 开始执行参数组合: batch_size={batch_size}, learning_rate={lr}=====")
+for batch_size,lr,ca_layers,pd_layers,ia_layers,pred_len ,seed,rec_weight in param_combinations:
+    print(f"\n===== 开始执行参数组合: batch_size={batch_size}, learning_rate={lr}，seed={seed}=====")
 
     # 构建命令列表
     command = [
@@ -64,7 +65,8 @@ for batch_size,lr,ca_layers,pd_layers,ia_layers,seed in param_combinations:
         "--patience", "10",
         "--itr", "1",
         "--n_heads",f"{n_head}",
-        "--seed", str(seed)
+        "--seed", str(seed),
+        "--rec_weight", str(rec_weight)
     ]
 
     # 执行命令并实时输出

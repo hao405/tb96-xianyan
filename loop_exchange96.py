@@ -2,37 +2,38 @@ import subprocess
 import os
 from itertools import product
 
-
 # 设置环境变量（指定GPU）
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["HIP_VISIBLE_DEVICES"] = "0，1，2"
 os.environ["MIOPEN_DISABLE_CACHE"] = "1"
 os.environ["MIOPEN_SYSTEM_DB_PATH"] = ""
 
 # 配置基础参数
 model_name = "TimeBridge"
-data_name = "weather"
+data_name = "exchange_rate"
 root='./data' # 数据集根路径
-data_path = 'weather' # 可选[ETT-small，electricity，exchange_rate，illness，traffic，weather]
+data_path = 'exchange_rate' # 可选[ETT-small，electricity，exchange_rate，illness，traffic，weather]
 seq_len=96
-alpha=0.000229321
+alpha=0.054603389
 
-enc_in=21
+enc_in=8
 
 # 定义要搜索的参数网格
 pred_len = [96]
-batch_sizes = [16]
-learning_rates = [0.000191804]
-ca_layers = [1]  # 长期
+batch_sizes = [64]
+learning_rates = [0.000221294]
+ca_layers = [0]  # 长期
 pd_layers = [1]
-ia_layers = [1]  # 短期
-seed=[2023]
-rec_weight=[1]
+ia_layers = [2]  # 短期
+seed=list(range(2080,2150))
+rec_weight=[2,3,4]
+
+
 # 生成所有参数组合
 param_combinations = product(batch_sizes, learning_rates,ca_layers,pd_layers,ia_layers,pred_len,seed,rec_weight)
 
 # 遍历每个参数组合并执行命令
 for batch_size,lr,ca_layers,pd_layers,ia_layers,pred_len ,seed,rec_weight in param_combinations:
-    print(f"\n===== 开始执行参数组合: batch_size={batch_size}, learning_rate={lr}，seed={seed}=====")
+    print(f"\n===== 开始执行参数组合: batch_size={batch_size}, learning_rate={lr}，seed={seed},rec_weight={rec_weight}=====")
 
     # 构建命令列表
     command = [
@@ -53,16 +54,16 @@ for batch_size,lr,ca_layers,pd_layers,ia_layers,pred_len ,seed,rec_weight in par
         "--ia_layers", str(ia_layers),
         "--des","Exp",
         "--period", "48",
-        "--n_heads","4",
+        "--n_heads","16",
         "--d_ff", "128",
         "--d_model", "128",
         "--alpha", f"{alpha}",
         "--itr", "1",
         "--batch_size",str(batch_size),
         "--learning_rate",str(lr),
-        "--seed",str(seed),
-        "--gpu", "0",
-        "--num_p", "12",
+        "--devices","0",
+        "--seed", str(seed),
+        "--patience","10",
         "--rec_weight",str(rec_weight)
     ]
 

@@ -61,11 +61,17 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 # channel_decoder input
                 dec_inp = torch.zeros_like(batch_y[:, -self.args.pred_len:, :]).float()
                 dec_inp = torch.cat([batch_y[:, :self.args.label_len, :], dec_inp], dim=1).float().to(self.device)
-                # fc1 - channel_decoder
+
+                # 【修改点1】验证阶段使用单卡推理，避免 DataParallel 在小 batch 或分发时的 bug
+                model_to_use = self.model.module if isinstance(self.model, nn.DataParallel) else self.model
+
+                # 【修改点2】使用 *extras 忽略多余的返回值
                 if self.args.output_attention:
-                    outputs,x,other_loss = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark,is_train=False)[0]
+                    outputs, x, other_loss, *extras = model_to_use(batch_x, batch_x_mark, dec_inp, batch_y_mark,
+                                                                   is_train=False)
                 else:
-                    outputs,x,other_loss = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark,is_train=False)
+                    outputs, x, other_loss, *extras = model_to_use(batch_x, batch_x_mark, dec_inp, batch_y_mark,
+                                                                   is_train=False)
 
                 f_dim = -1 if self.args.features == 'MS' else 0
                 outputs = outputs[:, -self.args.pred_len:, f_dim:]
@@ -176,6 +182,8 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
                 rec_loss = self.time_freq_mae(batch_x, x_rec) * self.args.rec_weight
                 loss += rec_loss
+                print("rec_loss:", rec_loss.item())
+                print("loss:", loss.item())
 
                 train_loss.append(loss.item())
 
@@ -269,7 +277,9 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                     other_loss = other_loss.mean()
                 loss += other_loss
 
-                loss += self.time_freq_mae(batch_x, x_rec) * self.args.rec_weight
+                rec_loss = self.time_freq_mae(batch_x, x_rec) * self.args.rec_weight
+                loss += rec_loss
+
 
                 train_loss.append(loss.item())
 
@@ -350,12 +360,18 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 dec_inp = torch.zeros_like(batch_y[:, -self.args.pred_len:, :]).float()
                 dec_inp = torch.cat([batch_y[:, :self.args.label_len, :], dec_inp], dim=1).float().to(self.device)
 
-                # fc1 - channel_decoder
-                if self.args.output_attention:
-                    outputs,x,other_loss = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark,y_enc=None,is_train=False, is_out_u=False, c_est=None)[0]
+                # 【修改点1】测试阶段同样强制单卡
+                model_to_use = self.model.module if isinstance(self.model, nn.DataParallel) else self.model
 
+                # 【修改点2】使用 *extras 处理返回值
+                if self.args.output_attention:
+                    outputs, x, other_loss = model_to_use(batch_x, batch_x_mark, dec_inp, batch_y_mark,
+                                                                   y_enc=None, is_train=False, is_out_u=False,
+                                                                   c_est=None)
                 else:
-                    outputs,x,other_loss = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark,y_enc=None,is_train=False, is_out_u=False, c_est=None)
+                    outputs, x, other_loss = model_to_use(batch_x, batch_x_mark, dec_inp, batch_y_mark,
+                                                                   y_enc=None, is_train=False, is_out_u=False,
+                                                                   c_est=None)
 
                 f_dim = -1 if self.args.features == 'MS' else 0
                 outputs = outputs[:, -self.args.pred_len:, f_dim:]
@@ -400,4 +416,4 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         f.close()
 
         object = mae + mse
-        return object,mae,mse
+        return object, mae, mse

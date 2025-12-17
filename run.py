@@ -78,7 +78,7 @@ if __name__ == '__main__':
     parser.add_argument('--use_gpu', type=bool, default=True, help='use gpu')
     parser.add_argument('--gpu', type=int, default=0, help='gpu')
     parser.add_argument('--use_multi_gpu', action='store_true', help='use multiple gpus', default=False)
-    parser.add_argument('--devices', type=str, default='0,1,2,3,4,5,6,7', help='device ids of multile gpus')
+    parser.add_argument('--devices', type=str, default='0,1,2', help='device ids of multile gpus')
 
     parser.add_argument('--inverse', action='store_true', help='inverse output data', default=False)
     # NSTS
@@ -86,10 +86,10 @@ if __name__ == '__main__':
     parser.add_argument('--zd_dim', type=int, default=3, help='num of encoder layers')
     parser.add_argument('--zd_kl_weight', type=float, default=1, help='num of encoder layers')
     parser.add_argument('--zc_kl_weight', type=float, default=1e-3, help='num of encoder layers')
-    parser.add_argument('--hmm_weight', type=float, default=1e-3, help='num of encoder layers')
-    parser.add_argument('--rec_weight', type=float, default=1e-5, help='latent dimension of koopman embedding')
+    parser.add_argument('--hmm_weight', type=float, default=1e-14, help='num of encoder layers')
+    parser.add_argument('--rec_weight', type=float, default=2, help='latent dimension of koopman embedding')
     parser.add_argument('--n_class', type=int, default=4, help='num of encoder layers')
-    parser.add_argument('--No_prior', action='store_true', default=True, help='num of encoder layers')
+    parser.add_argument('--No_prior', action='store_true', default=False, help='num of encoder layers')
     parser.add_argument('--lags', type=int, default=1, help='num of encoder layers')
     parser.add_argument('--embedding_dim', type=int, default=2, help='num of encoder layers')
     parser.add_argument('--is_bn', action='store_true', default=False, help='num of encoder layers')
@@ -122,7 +122,7 @@ if __name__ == '__main__':
     if args.is_training:
         for ii in range(args.itr):
             # setting record of experiments
-            setting = '{}_{}_{}_bs{}_ft{}_sl{}_ll{}_pl{}_dm{}_nh{}_ial{}_pdl{}_cal{}_df{}_eb{}_{}_{}_seed{}'.format(
+            setting = '{}_{}_{}_bs{}_ft{}_sl{}_ll{}_pl{}_dm{}_nh{}_ial{}_pdl{}_cal{}_df{}_eb{}_{}_seed{}_rec{}'.format(
                 args.model_id,
                 args.model,
                 args.data,
@@ -139,7 +139,8 @@ if __name__ == '__main__':
                 args.d_ff,
                 args.embed,
                 args.des,
-                args.seed,ii)
+                args.seed,
+                args.rec_weight,ii)
 
             exp = Exp(args)  # set experiments
             print('>>>>>>>start training : {}>>>>>>>>>>>>>>>>>>>>>>>>>>'.format(setting))
@@ -150,7 +151,7 @@ if __name__ == '__main__':
             torch.cuda.empty_cache()
     else:
         ii = 0
-        setting = '{}_{}_{}_bs{}_ft{}_sl{}_ll{}_pl{}_dm{}_nh{}_ial{}_pdl{}_cal{}_df{}_eb{}_{}_{}_seed{}'.format(
+        setting = '{}_{}_{}_bs{}_ft{}_sl{}_ll{}_pl{}_dm{}_nh{}_ial{}_pdl{}_cal{}_df{}_eb{}_{}_seed{}_rec{}'.format(
             args.model_id,
             args.model,
             args.data,
@@ -167,7 +168,8 @@ if __name__ == '__main__':
             args.d_ff,
             args.embed,
             args.des,
-            args.seed, ii)
+            args.seed,
+            args.rec_weight,ii)
 
         exp = Exp(args)  # set experiments
         print('>>>>>>>testing : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))

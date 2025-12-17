@@ -17,7 +17,7 @@ root=./data
 
 alpha=0.35
 data_name=traffic
-for pred_len in  720 96 192 336;
+for pred_len in  96 192 336 720;
 do
   MIOPEN_DISABLE_CACHE=1 \
   MIOPEN_SYSTEM_DB_PATH="" \

@@ -2,6 +2,8 @@ import subprocess
 import os
 from itertools import product
 
+from loop_traffic import n_head
+from loop_weather192 import rec_weight
 
 # 设置环境变量（指定GPU）
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -14,24 +16,26 @@ data_name = "weather"
 root='./data' # 数据集根路径
 data_path = 'weather' # 可选[ETT-small，electricity，exchange_rate，illness，traffic，weather]
 seq_len=96
-alpha=0.000229321
+alpha=0.00775418
 
 enc_in=21
 
 # 定义要搜索的参数网格
-pred_len = [96]
+pred_len = [336]
 batch_sizes = [16]
-learning_rates = [0.000191804]
+learning_rates = [0.000134441]
 ca_layers = [1]  # 长期
 pd_layers = [1]
-ia_layers = [1]  # 短期
-seed=[2023]
-rec_weight=[1]
+ia_layers = [2]  # 短期
+seed=list(range(2024,2040))
+n_head = [4]
+rec_weight = [1]
+
 # 生成所有参数组合
-param_combinations = product(batch_sizes, learning_rates,ca_layers,pd_layers,ia_layers,pred_len,seed,rec_weight)
+param_combinations = product(batch_sizes, learning_rates,ca_layers,pd_layers,ia_layers,pred_len,seed,rec_weight,n_head)
 
 # 遍历每个参数组合并执行命令
-for batch_size,lr,ca_layers,pd_layers,ia_layers,pred_len ,seed,rec_weight in param_combinations:
+for batch_size,lr,ca_layers,pd_layers,ia_layers,pred_len ,seed,rec_weight,n_head in param_combinations:
     print(f"\n===== 开始执行参数组合: batch_size={batch_size}, learning_rate={lr}，seed={seed}=====")
 
     # 构建命令列表
@@ -53,15 +57,15 @@ for batch_size,lr,ca_layers,pd_layers,ia_layers,pred_len ,seed,rec_weight in par
         "--ia_layers", str(ia_layers),
         "--des","Exp",
         "--period", "48",
-        "--n_heads","4",
+        "--n_heads",str(n_head),
         "--d_ff", "128",
         "--d_model", "128",
         "--alpha", f"{alpha}",
         "--itr", "1",
         "--batch_size",str(batch_size),
         "--learning_rate",str(lr),
-        "--seed",str(seed),
         "--gpu", "0",
+        "--seed",str(seed),
         "--num_p", "12",
         "--rec_weight",str(rec_weight)
     ]
