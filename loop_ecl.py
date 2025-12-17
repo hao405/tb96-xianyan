@@ -25,7 +25,7 @@ learning_rates = [0.0005]
 ca_layers = [2]  # 长期
 pd_layers = [1]
 ia_layers = [1]  # 短期
-seed = list(range(2030,2050))
+seed = list(range(2000,2100))
 rec_weight = [0.01]
 
 

@@ -24,7 +24,7 @@ learning_rates = [0.000612617]
 ca_layers = [2]  # 长期
 pd_layers = [1]
 ia_layers = [1]  # 短期
-seed=list(range(2020,2050))
+seed=list(range(2000,2100))
 
 # 生成所有参数组合
 param_combinations = product(batch_sizes, learning_rates,ca_layers,pd_layers,ia_layers,pred_len,seed)
@@ -62,6 +62,7 @@ for batch_size,lr,ca_layers,pd_layers,ia_layers,pred_len ,seed in param_combinat
         "--itr", "1",
         "--devices", "0,1,2,3,4,5,6,7",
         "--use_multi_gpu",
+        "--gpu","2",
         "--batch_size",str(batch_size),
         "--seed",str(seed),
         "--n_heads","16",
