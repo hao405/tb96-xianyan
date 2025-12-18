@@ -13,7 +13,7 @@ data_name = "traffic"
 root='./data' # 数据集根路径
 data_path = 'traffic' # 可选[ETT-small，electricity，exchange_rate，illness，traffic，weather]
 seq_len=96
-pred_len=[96,192,336,720] #36 48 60
+pred_len=[720,96,192,336] #36 48 60
 lr=0.000315524
 ca=3
 ia=1
@@ -28,13 +28,13 @@ learning_rates = [lr]
 ca_layers = [ca]  # 长期
 pd_layers = [1]
 ia_layers = [ia]  # 短期
-seed=list(range(2000,2100))
+seed=[2023,2024,2025,2026]
 
 # 生成所有参数组合
-param_combinations = product(batch_sizes, learning_rates, ca_layers, pd_layers, ia_layers,seed)
+param_combinations = product(batch_sizes, learning_rates, ca_layers, pd_layers, ia_layers,seed,pred_len)
 
 # 遍历每个参数组合并执行命令
-for batch_size, lr, ca_layers, pd_layers, ia_layers ,seed in param_combinations:
+for batch_size, lr, ca_layers, pd_layers, ia_layers ,seed,pred_len in param_combinations:
     print(f"\n===== 开始执行参数组合: batch_size={batch_size}, learning_rate={lr}=====")
 
     # 构建命令列表

@@ -19,7 +19,7 @@ enc_in=137
 
 # 定义要搜索的参数网格
 pred_len = [96,192,336,720]
-batch_sizes = [32]
+batch_sizes = [48]
 learning_rates = [0.000612617]
 ca_layers = [2]  # 长期
 pd_layers = [1]

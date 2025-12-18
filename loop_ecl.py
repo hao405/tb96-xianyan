@@ -19,22 +19,22 @@ alpha=0.2
 enc_in=321
 
 # 定义要搜索的参数网格
-pred_len = [96,192,336,720]
-batch_sizes = [64]
+pred_len = [720,96,192,336]
+batch_sizes = [32]
 learning_rates = [0.0005]
 ca_layers = [2]  # 长期
 pd_layers = [1]
 ia_layers = [1]  # 短期
-seed = list(range(2000,2100))
-rec_weight = [0.01]
+seed = list(range(2023,2033))
+rec_weight = [0.001,1]
 
 
 # 生成所有参数组合
-param_combinations = product(batch_sizes, learning_rates, ca_layers, pd_layers, ia_layers,pred_len,seed,rec_weight)
+param_combinations = product(batch_sizes, learning_rates, ca_layers, pd_layers, ia_layers,seed,pred_len,rec_weight)
 
 # 遍历每个参数组合并执行命令
-for batch_size, lr, ca_layers, pd_layers, ia_layers ,pred_len,seed,rec_weight in param_combinations:
-    print(f"\n===== 开始执行参数组合: batch_size={batch_size}, learning_rate={lr}=====")
+for batch_size, lr, ca_layers, pd_layers, ia_layers ,seed,pred_len,rec_weight in param_combinations:
+    print(f"\n===== 开始执行参数组合: batch_size={batch_size}, learning_rate={lr},rec_weight={rec_weight}=====")
 
     # 构建命令列表
     command = [
@@ -48,7 +48,7 @@ for batch_size, lr, ca_layers, pd_layers, ia_layers ,pred_len,seed,rec_weight in
         "--features","M",
         "--seq_len",f"{seq_len}",
         "--label_len","48",
-        "--pred_len",str(pred_len),
+        "--pred_len",f"{pred_len}",
         "--enc_in",f"{enc_in}",
         "--des","Exp",
         "--num_p","4",
