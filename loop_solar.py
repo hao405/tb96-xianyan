@@ -19,12 +19,12 @@ enc_in=137
 
 # 定义要搜索的参数网格
 pred_len = [96,192,336,720]
-batch_sizes = [48]
+batch_sizes = [32]
 learning_rates = [0.000612617]
-ca_layers = [2]  # 长期
+ca_layers = [1]  # 长期
 pd_layers = [1]
 ia_layers = [1]  # 短期
-seed=list(range(2000,2100))
+seed=list(range(2023,2030))
 
 # 生成所有参数组合
 param_combinations = product(batch_sizes, learning_rates,ca_layers,pd_layers,ia_layers,pred_len,seed)

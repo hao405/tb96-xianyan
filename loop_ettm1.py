@@ -2,24 +2,25 @@ import subprocess
 import os
 from itertools import product
 
+
 # 设置环境变量（指定GPU）
-os.environ["HIP_VISIBLE_DEVICES"] = "5"
+os.environ["HIP_VISIBLE_DEVICES"] = "1"
 os.environ["MIOPEN_DISABLE_CACHE"] = "1"
 os.environ["MIOPEN_SYSTEM_DB_PATH"] = ""
 
 # 配置基础参数
 model_name = "TimeBridge"
-data_name = "ETTm2"
+data_name = "ETTm1"
 root='./data' # 数据集根路径
 data_path = 'ETT-small' # 可选[ETT-small，electricity，exchange_rate，illness，traffic，weather]
 seq_len=96
-pred_len=96
-lr=0.000162586
-bs=32
-ca=1
-ia=2
-n_head=4
-alpha=0.30747614
+pred_len=720
+lr=0.0001188
+bs=48
+ca=0
+ia=3
+n_head=8
+alpha=0.344086057
 enc_in=7
 
 # 定义要搜索的参数网格
@@ -28,13 +29,14 @@ learning_rates = [lr]
 ca_layers = [ca]  # 长期
 pd_layers = [1]
 ia_layers = [ia]  # 短期
-seed=list(range(2023,2025))
+seed=[2023,2024,2025]
+rec_weight = [0.2]
 
 # 生成所有参数组合
-param_combinations = product(batch_sizes, learning_rates,ca_layers,pd_layers,ia_layers,seed)
+param_combinations = product(batch_sizes, learning_rates,ca_layers,pd_layers,ia_layers,seed,rec_weight)
 
 # 遍历每个参数组合并执行命令
-for batch_size,lr,ca_layers,pd_layers,ia_layers,seed in param_combinations:
+for batch_size,lr,ca_layers,pd_layers,ia_layers,seed,rec_weight in param_combinations:
     print(f"\n===== 开始执行参数组合: batch_size={batch_size}, learning_rate={lr}=====")
 
     # 构建命令列表
@@ -56,7 +58,7 @@ for batch_size,lr,ca_layers,pd_layers,ia_layers,seed in param_combinations:
         "--pd_layers", str(pd_layers),
         "--ia_layers", str(ia_layers),
         "--des", "Exp",
-        "--n_heads", "4",
+        "--n_heads", "8",
         "--d_model", "64",
         "--d_ff", "128",
         "--batch_size", str(batch_size),
@@ -65,7 +67,8 @@ for batch_size,lr,ca_layers,pd_layers,ia_layers,seed in param_combinations:
         "--train_epochs", "100",
         "--patience", "10",
         "--itr", "1",
-        "--seed",str(seed)
+        "--seed",str(seed),
+        "--rec_weight", str(rec_weight)
     ]
 
     # 执行命令并实时输出
