@@ -755,17 +755,15 @@ class Model(nn.Module):
                 hmm_loss = -E_logp_x.mean()
             embeddings = self.c_embeddings(c_est)
 
-            # 正确的拼接方式：在时间维度(dim=1)上拼接 rec 和 pred
-            # zc_rec_mean: (B, seq_len, zc_dim), zc_pred_mean: (B, pred_len, zc_dim)
-            # cat后: (B, seq_len+pred_len, zc_dim)
-            # zc_kl_loss = self.encoder_zc.kl_loss(torch.cat([zc_rec_mean, zc_pred_mean], dim=1),
-            #                                      torch.cat([zc_rec_std, zc_pred_std], dim=1),
-            #                                      torch.cat([zc_rec, zc_pred], dim=1))
-            # zd_kl_loss = self.encoder_zd.kl_loss(torch.cat([zd_rec_mean, zd_pred_mean], dim=1),
-            #                                      torch.cat([zd_rec_std, zd_pred_std], dim=1),
-            #                                      torch.cat([zd_rec, zd_pred], dim=1), embeddings)
+
+            zc_kl_loss = self.encoder_zc.kl_loss(torch.cat([zc_rec_mean, zc_pred_mean], dim=1),
+                                                 torch.cat([zc_rec_std, zc_pred_std], dim=1),
+                                                 torch.cat([zc_rec, zc_pred], dim=1))
+            zd_kl_loss = self.encoder_zd.kl_loss(torch.cat([zd_rec_mean, zd_pred_mean], dim=1),
+                                                 torch.cat([zd_rec_std, zd_pred_std], dim=1),
+                                                 torch.cat([zd_rec, zd_pred], dim=1), embeddings)
             other_loss +=  hmm_loss * self.configs.hmm_weight
-            # other_loss += zc_kl_loss * self.configs.zc_kl_weight + zd_kl_loss * self.configs.zd_kl_weight
+            other_loss += zc_kl_loss * self.configs.zc_kl_weight + zd_kl_loss * self.configs.zd_kl_weight
             if is_out_u:
                 return y, x, other_loss, c_est
         return y, x, other_loss

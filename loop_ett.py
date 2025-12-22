@@ -20,7 +20,11 @@ ca=0
 ia=2
 n_head=8
 alpha=0.383301731
-rec_weight = [2]
+rec_weight = [1.5e-4,1.00E-05,5e-5]
+zd_kl_weight = [1.00E-09]
+zc_kl_weight = [1.00E-09]
+hmm_weight = [1.00E-09]
+
 
 enc_in=7
 
@@ -30,13 +34,13 @@ learning_rates = [lr]
 ca_layers = [ca]  # 长期
 pd_layers = [1]
 ia_layers = [ia]  # 短期
-seed=list(range(2024,2030))
+seed=[2023]
 # 生成所有参数组合
-param_combinations = product(batch_sizes, learning_rates,ca_layers,pd_layers,ia_layers,pred_len,seed,rec_weight)
+param_combinations = product(batch_sizes, learning_rates,ca_layers,pd_layers,ia_layers,pred_len,seed,rec_weight,zd_kl_weight,zc_kl_weight,hmm_weight)
 
 # 遍历每个参数组合并执行命令
-for batch_size,lr,ca_layers,pd_layers,ia_layers,pred_len ,seed,rec_weight in param_combinations:
-    print(f"\n===== 开始执行参数组合: batch_size={batch_size}, learning_rate={lr}，seed={seed}=====")
+for batch_size,lr,ca_layers,pd_layers,ia_layers,pred_len ,seed,rec_weight,zd_kl_weight,zc_kl_weight,hmm_weight in param_combinations:
+    print(f"\n===== 开始执行参数组合: batch_size={batch_size}, learning_rate={lr}，seed={seed}, rec_weight={rec_weight}, zd_kl_weight={zd_kl_weight}, zc_kl_weight={zc_kl_weight}, hmm_weight={hmm_weight}=====")
 
     # 构建命令列表
     command = [
@@ -66,7 +70,10 @@ for batch_size,lr,ca_layers,pd_layers,ia_layers,pred_len ,seed,rec_weight in par
         "--itr", "1",
         "--n_heads",f"{n_head}",
         "--seed", str(seed),
-        "--rec_weight", str(rec_weight)
+        "--rec_weight", str(rec_weight),
+        "--zd_kl_weight", str(zd_kl_weight),
+        "--zc_kl_weight", str(zc_kl_weight),
+        "--hmm_weight", str(hmm_weight)
     ]
 
     # 执行命令并实时输出

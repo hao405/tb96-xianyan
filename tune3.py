@@ -117,10 +117,10 @@ def objective(trial):
     args.learning_rate = trial.suggest_float('learning_rate', 1e-4, 4e-4, log=True)
     args.batch_size = trial.suggest_categorical('batch_size', [16])
 
-    args.zd_kl_weight = trial.suggest_float('zd_kl_weight', 1e-20, 1e-10, log=True)
-    args.zc_kl_weight = trial.suggest_float('zc_kl_weight', 1e-25, 1e-10, log=True)
-    args.hmm_weight = trial.suggest_float('hmm_weight', 1e-25, 1e-10, log=True)
-    args.rec_weight = trial.suggest_float('rec_weight', 1e-25, 1e-9, log=True)
+    args.zd_kl_weight = trial.suggest_float('zd_kl_weight', 5e-5, 3e-4, log=True)
+    args.zc_kl_weight = trial.suggest_float('zc_kl_weight', 5e-5, 3e-4, log=True)
+    args.hmm_weight = trial.suggest_float('hmm_weight', 5e-5, 3e-4, log=True)
+    args.rec_weight = trial.suggest_float('rec_weight', 0.1, 1, log=True)
 
     # # 学习率调度器
     args.ca_layers = trial.suggest_categorical('ca_layers', [1])
@@ -132,7 +132,7 @@ def objective(trial):
         raise optuna.exceptions.TrialPruned()
     args.n_heads = trial.suggest_categorical('n_heads', possible_n_heads)
     # args.num_p = trial.suggest_categorical('num_p', [4,6,8,12])
-    args.alpha = trial.suggest_float('alpha', 0.00001, 0.11, log=True)
+    args.alpha = trial.suggest_float('alpha', 0.0000001, 0.13, log=True)
 
     # # d_ff 通常是 d_model 的倍数
     # args.d_ff = trial.suggest_categorical('d_ff_multiplier', [1, 2, 4]) * args.d_model
@@ -189,7 +189,7 @@ if __name__ == '__main__':
 
     # 'n_trials' 是你想要尝试的超参数组合的总次数
     # 从一个较小的数字开始，比如 20，然后再增加
-    study.optimize(objective, n_trials=6)
+    study.optimize(objective, n_trials=12)
 
     # ---- 6. 输出优化结果 ----
     print("\n\n--- 优化完成 ---")

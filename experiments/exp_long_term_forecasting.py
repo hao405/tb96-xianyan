@@ -182,8 +182,8 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
                 rec_loss = self.time_freq_mae(batch_x, x_rec) * self.args.rec_weight
                 loss += rec_loss
-                print("rec_loss:", rec_loss.item())
-                print("loss:", loss.item())
+                # print("rec_loss:", rec_loss.item())
+                # print("loss:", loss.item())
 
                 train_loss.append(loss.item())
 
