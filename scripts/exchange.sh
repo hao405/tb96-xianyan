@@ -11,15 +11,15 @@ if [ ! -d "./logs/test/new" ]; then
 fi
 
 model_name=TimeBridge
-seq_len=96
-GPU=${1:-3}
+seq_len=720
+GPU=0
 root=./data
 export MIOPEN_DISABLE_CACHE=1
 export MIOPEN_DEBUG_DISABLE_FIND_DB=1
 export HIP_VISIBLE_DEVICES=$GPU
 alpha=0.35
 data_name=exchange_rate
-for pred_len in 96 192 336 720
+for pred_len in 720 96 192 336
 do
   HIP_VISIBLE_DEVICES=$GPU \
   python -u tune2.py \

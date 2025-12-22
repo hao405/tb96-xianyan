@@ -115,16 +115,16 @@ def objective(trial):
 
     args.learning_rate = trial.suggest_float('learning_rate', 1e-4, 3e-4, log=True)
     args.batch_size = trial.suggest_categorical('batch_size', [32, 48, 64])
-    args.zd_kl_weight = trial.suggest_float('zd_kl_weight', 1e-18, 1e-10, log=True)
-    args.zc_kl_weight = trial.suggest_float('zc_kl_weight', 1e-18, 1e-10, log=True)
-    args.hmm_weight = trial.suggest_float('hmm_weight', 1e-18, 1e-10, log=True)
-    args.rec_weight = trial.suggest_float('rec_weight', 1e-18, 1e-10, log=True)
+    # args.zd_kl_weight = trial.suggest_float('zd_kl_weight', 1e-18, 1e-10, log=True)
+    # args.zc_kl_weight = trial.suggest_float('zc_kl_weight', 1e-18, 1e-10, log=True)
+    # args.hmm_weight = trial.suggest_float('hmm_weight', 1e-18, 1e-10, log=True)
+    args.rec_weight = trial.suggest_float('rec_weight', 5e-1,5, log=True)
 
     # 学习率调度器
 
     args.ca_layers = trial.suggest_categorical('ca_layers', [0, 1])
     args.pd_layers = 1
-    args.ia_layers = trial.suggest_categorical('ia_layers', [2, 3])
+    args.ia_layers = trial.suggest_categorical('ia_layers', [2])
     args.alpha = trial.suggest_float('alpha', 0.01, 0.25, log=True)
 
     possible_n_heads = [h for h in [4, 16] if args.d_model % h == 0]
@@ -185,7 +185,7 @@ if __name__ == '__main__':
 
     # 'n_trials' 是你想要尝试的超参数组合的总次数
     # 从一个较小的数字开始，比如 20，然后再增加
-    study.optimize(objective, n_trials=8)
+    study.optimize(objective, n_trials=10)
 
     # ---- 6. 输出优化结果 ----
     print("\n\n--- 优化完成 ---")

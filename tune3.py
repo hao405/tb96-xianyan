@@ -115,7 +115,7 @@ def objective(trial):
     args = parser.parse_args()  # 使用空列表来避免解析命令行
 
     args.learning_rate = trial.suggest_float('learning_rate', 1e-4, 4e-4, log=True)
-    args.batch_size = trial.suggest_categorical('batch_size', [16, 32])
+    args.batch_size = trial.suggest_categorical('batch_size', [16])
 
     args.zd_kl_weight = trial.suggest_float('zd_kl_weight', 1e-20, 1e-10, log=True)
     args.zc_kl_weight = trial.suggest_float('zc_kl_weight', 1e-25, 1e-10, log=True)
@@ -125,7 +125,7 @@ def objective(trial):
     # # 学习率调度器
     args.ca_layers = trial.suggest_categorical('ca_layers', [1])
     args.pd_layers = 1
-    args.ia_layers = trial.suggest_categorical('ia_layers', [1])
+    args.ia_layers = trial.suggest_categorical('ia_layers', [1,2])
 
     possible_n_heads = [h for h in [4, 32, 64] if args.d_model % h == 0]
     if not possible_n_heads:  # 如果没有可用的 n_heads，则跳过此次试验
