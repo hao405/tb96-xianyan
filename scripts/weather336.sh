@@ -13,7 +13,7 @@ fi
 
 model_name=TimeBridge
 seq_len=96
-GPU=0
+GPU=3
 root=./data
 export MIOPEN_DISABLE_CACHE=1
 export MIOPEN_DEBUG_DISABLE_FIND_DB=1
